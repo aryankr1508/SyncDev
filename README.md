@@ -1,3 +1,3 @@
 ### Demo
 
-https://codesync.netlify.app/
+https://syncdev.netlify.app/
