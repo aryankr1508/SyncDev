@@ -1,0 +1,24 @@
+[build]
+  command = "npm run verify"
+  publish = "build"
+
+[build.environment]
+  NODE_VERSION = "20"
+  NPM_VERSION = "10"
+  CI = "true"
+  REACT_APP_SYNC_TRANSPORT = "netlify"
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+[context.production]
+  command = "npm run verify"
+
+[context.deploy-preview]
+  command = "npm run verify"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

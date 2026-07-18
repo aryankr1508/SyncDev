@@ -1,134 +1,142 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
-import ACTIONS from '../Actions';
-import Client from '../components/Client';
+import { Navigate, useLocation, useNavigate, useParams } from 'react-router-dom';
 import Editor from '../components/Editor';
-import { initSocket } from '../socket';
+import EditorStatusBar from '../components/EditorStatusBar';
+import RoomSidebar from '../components/RoomSidebar';
+import WorkspaceHeader from '../components/WorkspaceHeader';
+import { detectLanguage, LANGUAGE_MAP } from '../editor/languages';
+import { useEditorPreferences } from '../hooks/useEditorPreferences';
+import { useRoomSocket } from '../hooks/useRoomSocket';
+import { copyText } from '../utils/clipboard';
 import {
-    useLocation,
-    useNavigate,
-    Navigate,
-    useParams,
-} from 'react-router-dom';
+    forgetRoomUser,
+    getRememberedRoomUser,
+} from '../utils/roomSession';
+import { runJavaScript } from '../utils/codeRunner';
 
 const EditorPage = () => {
-    const socketRef = useRef(null);
-    const codeRef = useRef(null);
+    const codeRef = useRef('');
     const location = useLocation();
     const { roomId } = useParams();
-    const reactNavigator = useNavigate();
-    const [clients, setClients] = useState([]);
+    const navigate = useNavigate();
+    const username = useMemo(
+        () => location.state?.username || getRememberedRoomUser(roomId),
+        [location.state?.username, roomId]
+    );
+    const { clients, socket, status } = useRoomSocket({ roomId, username });
+    const [preferences, updatePreferences] = useEditorPreferences();
+    const [languageChoice, setLanguageChoice] = useState('auto');
+    const [detectedLanguage, setDetectedLanguage] = useState('javascript');
+    const [cursor, setCursor] = useState({ line: 1, column: 1, selected: 0 });
+    const [isRunning, setIsRunning] = useState(false);
 
-    useEffect(() => {
-        const init = async () => {
-            socketRef.current = await initSocket();
-            socketRef.current.on('connect_error', (err) => handleErrors(err));
-            socketRef.current.on('connect_failed', (err) => handleErrors(err));
+    const effectiveLanguage =
+        languageChoice === 'auto' ? detectedLanguage : languageChoice;
 
-            function handleErrors(e) {
-                console.log('socket error', e);
-                toast.error('Socket connection failed, try again later.');
-                reactNavigator('/');
-            }
-
-            socketRef.current.emit(ACTIONS.JOIN, {
-                roomId,
-                username: location.state?.username,
-            });
-
-            // Listening for joined event
-            socketRef.current.on(
-                ACTIONS.JOINED,
-                ({ clients, username, socketId }) => {
-                    if (username !== location.state?.username) {
-                        toast.success(`${username} joined the room.`);
-                        console.log(`${username} joined`);
-                    }
-                    setClients(clients);
-                    socketRef.current.emit(ACTIONS.SYNC_CODE, {
-                        code: codeRef.current,
-                        socketId,
-                    });
-                }
-            );
-
-            // Listening for disconnected
-            socketRef.current.on(
-                ACTIONS.DISCONNECTED,
-                ({ socketId, username }) => {
-                    toast.success(`${username} left the room.`);
-                    setClients((prev) => {
-                        return prev.filter(
-                            (client) => client.socketId !== socketId
-                        );
-                    });
-                }
-            );
-        };
-        init();
-        return () => {
-            socketRef.current.disconnect();
-            socketRef.current.off(ACTIONS.JOINED);
-            socketRef.current.off(ACTIONS.DISCONNECTED);
-        };
-    }, []);
-
-    async function copyRoomId() {
+    const copyRoomId = async () => {
         try {
-            await navigator.clipboard.writeText(roomId);
-            toast.success('Room ID has been copied to your clipboard');
-        } catch (err) {
-            toast.error('Could not copy the Room ID');
-            console.error(err);
+            await copyText(roomId);
+            toast.success('Room ID copied to your clipboard');
+        } catch (error) {
+            toast.error('Could not copy the room ID');
         }
-    }
+    };
 
-    function leaveRoom() {
-        reactNavigator('/');
-    }
+    const leaveRoom = () => {
+        forgetRoomUser(roomId);
+        navigate('/');
+    };
 
-    if (!location.state) {
-        return <Navigate to="/" />;
-    }
+    const changeLanguage = (event) => {
+        const nextLanguage = event.target.value;
+        setLanguageChoice(nextLanguage);
+
+        if (nextLanguage === 'auto') {
+            const detected = detectLanguage(codeRef.current);
+            setDetectedLanguage(detected);
+            toast.success(`Detected ${LANGUAGE_MAP[detected].label}`);
+        } else {
+            toast.success(`Language set to ${LANGUAGE_MAP[nextLanguage].label}`);
+        }
+    };
+
+    const runCode = async () => {
+        if (effectiveLanguage !== 'javascript') {
+            toast.error('The in-browser runner currently supports JavaScript');
+            return;
+        }
+        if (!codeRef.current.trim()) {
+            toast('Add some JavaScript before running it');
+            return;
+        }
+
+        setIsRunning(true);
+        try {
+            const output = await runJavaScript(codeRef.current);
+            toast.success(output.length ? output.join('\n') : 'Code ran successfully', {
+                duration: 5000,
+            });
+        } catch (error) {
+            toast.error(error.message.split('\n')[0], { duration: 5000 });
+        } finally {
+            setIsRunning(false);
+        }
+    };
+
+    if (!username) return <Navigate to="/" replace />;
 
     return (
-        <div className="mainWrap">
-            <div className="aside">
-                <div className="asideInner">
-                    <div className="logo">
-                        <img
-                            className="logoImage"
-                            src="/code-sync.png"
-                            alt="logo"
+        <main className="min-h-screen overflow-x-hidden bg-[#f7f9fb] p-3 transition-colors duration-300 dark:bg-[#020817] sm:p-5">
+            <div className="mx-auto grid min-h-[calc(100vh-24px)] max-w-[1760px] gap-4 lg:h-[calc(100vh-40px)] lg:min-h-[720px] lg:grid-cols-[285px_minmax(0,1fr)]">
+                <RoomSidebar
+                    clients={clients}
+                    socketId={socket?.id}
+                    status={status}
+                    onCopyRoom={copyRoomId}
+                    onLeave={leaveRoom}
+                />
+
+                <section className="relative flex min-w-0 flex-col overflow-hidden rounded-[20px] border border-slate-200/90 bg-white transition-colors duration-300 dark:border-[#1b243c] dark:bg-[#070c1e]">
+                    <div className="pointer-events-none absolute inset-0 hidden bg-[radial-gradient(circle_at_58%_42%,rgba(34,39,77,0.16),transparent_44%)] dark:block" />
+                    <WorkspaceHeader />
+
+                    <div className="mx-5 min-h-[480px] flex-1 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[inset_0_1px_0_rgba(255,255,255,0.6)] transition-colors dark:border-[#293149] dark:bg-[#0b1023] dark:shadow-none">
+                        <Editor
+                            socket={socket}
+                            roomId={roomId}
+                            language={effectiveLanguage}
+                            theme={preferences.theme}
+                            fontSize={preferences.fontSize}
+                            wordWrap={preferences.wordWrap}
+                            autoDetect={languageChoice === 'auto'}
+                            onCodeChange={(code) => {
+                                codeRef.current = code;
+                            }}
+                            onCursorChange={setCursor}
+                            onLanguageDetected={setDetectedLanguage}
+                            onSave={() =>
+                                toast.success('Your changes are already synced', {
+                                    id: 'sync-confirmation',
+                                })
+                            }
                         />
                     </div>
-                    <h3>Connected</h3>
-                    <div className="clientsList">
-                        {clients.map((client) => (
-                            <Client
-                                key={client.socketId}
-                                username={client.username}
-                            />
-                        ))}
-                    </div>
-                </div>
-                <button className="btn copyBtn" onClick={copyRoomId}>
-                    Copy ROOM ID
-                </button>
-                <button className="btn leaveBtn" onClick={leaveRoom}>
-                    Leave
-                </button>
+
+                    <EditorStatusBar
+                        cursor={cursor}
+                        languageChoice={languageChoice}
+                        detectedLanguage={detectedLanguage}
+                        preferences={preferences}
+                        connectionStatus={status}
+                        onLanguageChange={changeLanguage}
+                        onPreferenceChange={updatePreferences}
+                        onRun={runCode}
+                        isRunning={isRunning}
+                    />
+                </section>
             </div>
-            <div className="editorWrap">
-                <Editor
-                    socketRef={socketRef}
-                    roomId={roomId}
-                    onCodeChange={(code) => {
-                        codeRef.current = code;
-                    }}
-                />
-            </div>
-        </div>
+        </main>
     );
 };
 

@@ -1,67 +1,96 @@
 const express = require('express');
-const app = express();
 const http = require('http');
 const path = require('path');
 const { Server } = require('socket.io');
 const ACTIONS = require('./src/Actions');
 
+const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
-
-app.use(express.static('build'));
-app.use((req, res, next) => {
-    res.sendFile(path.join(__dirname, 'build', 'index.html'));
+const io = new Server(server, {
+    cors: {
+        origin: process.env.CLIENT_URL || true,
+        methods: ['GET', 'POST'],
+    },
 });
 
-const userSocketMap = {};
-function getAllConnectedClients(roomId) {
-    // Map
-    return Array.from(io.sockets.adapter.rooms.get(roomId) || []).map(
-        (socketId) => {
-            return {
-                socketId,
-                username: userSocketMap[socketId],
-            };
-        }
-    );
-}
+const userSocketMap = new Map();
+const roomCodeMap = new Map();
+
+const getAllConnectedClients = (roomId) =>
+    Array.from(io.sockets.adapter.rooms.get(roomId) || []).map((socketId) => ({
+        socketId,
+        username: userSocketMap.get(socketId),
+    }));
+
+app.get('/health', (request, response) => {
+    response.json({
+        status: 'ok',
+        connectedClients: io.engine.clientsCount,
+    });
+});
+
+app.use(express.static(path.join(__dirname, 'build')));
+app.get('*', (request, response) => {
+    response.sendFile(path.join(__dirname, 'build', 'index.html'));
+});
 
 io.on('connection', (socket) => {
-    console.log('socket connected', socket.id);
+    console.log(`Socket connected: ${socket.id}`);
 
-    socket.on(ACTIONS.JOIN, ({ roomId, username }) => {
-        userSocketMap[socket.id] = username;
-        socket.join(roomId);
-        const clients = getAllConnectedClients(roomId);
+    socket.on(ACTIONS.JOIN, ({ roomId, username } = {}) => {
+        const normalizedRoomId = String(roomId || '').trim();
+        const normalizedUsername = String(username || '').trim().slice(0, 32);
+
+        if (!normalizedRoomId || !normalizedUsername) {
+            socket.emit('room-error', { message: 'Room ID and username are required.' });
+            return;
+        }
+
+        userSocketMap.set(socket.id, normalizedUsername);
+        socket.join(normalizedRoomId);
+
+        const clients = getAllConnectedClients(normalizedRoomId);
         clients.forEach(({ socketId }) => {
             io.to(socketId).emit(ACTIONS.JOINED, {
                 clients,
-                username,
+                username: normalizedUsername,
                 socketId: socket.id,
             });
         });
+
+        if (roomCodeMap.has(normalizedRoomId)) {
+            socket.emit(ACTIONS.CODE_CHANGE, {
+                code: roomCodeMap.get(normalizedRoomId),
+            });
+        }
     });
 
-    socket.on(ACTIONS.CODE_CHANGE, ({ roomId, code }) => {
-        socket.in(roomId).emit(ACTIONS.CODE_CHANGE, { code });
-    });
-
-    socket.on(ACTIONS.SYNC_CODE, ({ socketId, code }) => {
-        io.to(socketId).emit(ACTIONS.CODE_CHANGE, { code });
+    socket.on(ACTIONS.CODE_CHANGE, ({ roomId, code } = {}) => {
+        if (roomId && typeof code === 'string') {
+            roomCodeMap.set(roomId, code);
+            socket.to(roomId).emit(ACTIONS.CODE_CHANGE, { code });
+        }
     });
 
     socket.on('disconnecting', () => {
-        const rooms = [...socket.rooms];
-        rooms.forEach((roomId) => {
-            socket.in(roomId).emit(ACTIONS.DISCONNECTED, {
-                socketId: socket.id,
-                username: userSocketMap[socket.id],
-            });
+        const username = userSocketMap.get(socket.id);
+
+        socket.rooms.forEach((roomId) => {
+            if (roomId !== socket.id) {
+                socket.to(roomId).emit(ACTIONS.DISCONNECTED, {
+                    socketId: socket.id,
+                    username,
+                });
+
+                if (io.sockets.adapter.rooms.get(roomId)?.size === 1) {
+                    roomCodeMap.delete(roomId);
+                }
+            }
         });
-        delete userSocketMap[socket.id];
-        socket.leave();
+
+        userSocketMap.delete(socket.id);
     });
 });
 
-const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => console.log(`Listening on port ${PORT}`));
+const PORT = Number(process.env.PORT) || 5001;
+server.listen(PORT, () => console.log(`Code Sync listening on port ${PORT}`));

@@ -1,9 +1,41 @@
-body {
-    margin: 0;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto',
-        'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans',
-        'Helvetica Neue', sans-serif;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    background: #1c1e29;
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html .CodeMirror.CodeMirror {
+    background: var(--editor-background) !important;
+    transition: background-color 180ms ease;
+}
+
+.CodeMirror-scroll {
+    padding-top: 20px;
+    padding-right: 116px;
+}
+
+html .CodeMirror .CodeMirror-gutters {
+    background: var(--editor-gutter) !important;
+    border-right: 0 !important;
+    transition: background-color 180ms ease;
+}
+
+html .CodeMirror .CodeMirror-linenumber {
+    color: var(--editor-line-number) !important;
+}
+
+html .CodeMirror .CodeMirror-placeholder {
+    color: var(--editor-placeholder) !important;
+    opacity: 1 !important;
+}
+
+html .CodeMirror .CodeMirror-activeline-background {
+    background: var(--editor-active-line) !important;
+}
+
+html .CodeMirror .CodeMirror-cursor {
+    border-left-color: var(--editor-cursor) !important;
+}
+
+.CodeMirror-selected,
+.CodeMirror-focused .CodeMirror-selected {
+    background: color-mix(in srgb, var(--editor-cursor) 18%, transparent) !important;
 }
