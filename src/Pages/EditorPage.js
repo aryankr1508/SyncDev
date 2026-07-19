@@ -102,7 +102,7 @@ const EditorPage = () => {
                     onLeave={leaveRoom}
                 />
 
-                <section className="relative flex min-w-0 flex-col overflow-hidden rounded-[20px] border border-slate-200/90 bg-white transition-colors duration-300 dark:border-[#1b243c] dark:bg-[#070c1e]">
+                <section className="relative flex min-w-0 flex-col overflow-y-auto rounded-[20px] border border-slate-200/90 bg-white transition-colors duration-300 dark:border-[#1b243c] dark:bg-[#070c1e]">
                     <div className="pointer-events-none absolute inset-0 hidden bg-[radial-gradient(circle_at_58%_42%,rgba(34,39,77,0.16),transparent_44%)] dark:block" />
                     <WorkspaceHeader />
 
@@ -136,8 +136,6 @@ const EditorPage = () => {
                         </details>
                     )}
 
-                    <OutputPanel execution={execution} onRun={runCode} onStop={execution.stop} onCopy={() => toast.success('Output copied')} />
-
                     <EditorStatusBar
                         cursor={cursor}
                         languageChoice={languageChoice}
@@ -148,6 +146,13 @@ const EditorPage = () => {
                         onPreferenceChange={updatePreferences}
                         onRun={runCode}
                         isRunning={execution.state.status === 'running'}
+                    />
+
+                    <OutputPanel
+                        execution={execution}
+                        onRun={runCode}
+                        onStop={execution.stop}
+                        onCopy={() => toast.success('Output copied')}
                     />
                 </section>
             </div>
