@@ -5,6 +5,7 @@ import Editor from '../components/Editor';
 import EditorStatusBar from '../components/EditorStatusBar';
 import RoomSidebar from '../components/RoomSidebar';
 import WorkspaceHeader from '../components/WorkspaceHeader';
+import OutputPanel from '../components/OutputPanel';
 import { detectLanguage, LANGUAGE_MAP } from '../editor/languages';
 import { useEditorPreferences } from '../hooks/useEditorPreferences';
 import { useRoomSocket } from '../hooks/useRoomSocket';
@@ -13,7 +14,8 @@ import {
     forgetRoomUser,
     getRememberedRoomUser,
 } from '../utils/roomSession';
-import { runJavaScript } from '../utils/codeRunner';
+import { PREVIEW_LANGUAGES } from '../utils/codeRunner';
+import { useCodeExecution } from '../hooks/useCodeExecution';
 
 const EditorPage = () => {
     const codeRef = useRef('');
@@ -29,7 +31,8 @@ const EditorPage = () => {
     const [languageChoice, setLanguageChoice] = useState('auto');
     const [detectedLanguage, setDetectedLanguage] = useState('javascript');
     const [cursor, setCursor] = useState({ line: 1, column: 1, selected: 0 });
-    const [isRunning, setIsRunning] = useState(false);
+    const [source, setSource] = useState('');
+    const execution = useCodeExecution();
 
     const effectiveLanguage =
         languageChoice === 'auto' ? detectedLanguage : languageChoice;
@@ -61,28 +64,30 @@ const EditorPage = () => {
         }
     };
 
-    const runCode = async () => {
-        if (effectiveLanguage !== 'javascript') {
-            toast.error('The in-browser runner currently supports JavaScript');
-            return;
-        }
+    const runCode = () => {
         if (!codeRef.current.trim()) {
-            toast('Add some JavaScript before running it');
+            toast('Add code before running it');
             return;
         }
-
-        setIsRunning(true);
-        try {
-            const output = await runJavaScript(codeRef.current);
-            toast.success(output.length ? output.join('\n') : 'Code ran successfully', {
-                duration: 5000,
-            });
-        } catch (error) {
-            toast.error(error.message.split('\n')[0], { duration: 5000 });
-        } finally {
-            setIsRunning(false);
-        }
+        execution.run({ language: effectiveLanguage, source: codeRef.current, timeout: 4000 });
     };
+
+    const previewDocument = useMemo(() => {
+        if (effectiveLanguage === 'markdown') {
+            const escaped = source.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            return escaped
+                .replace(/^### (.*)$/gm, '<h3>$1</h3>')
+                .replace(/^## (.*)$/gm, '<h2>$1</h2>')
+                .replace(/^# (.*)$/gm, '<h1>$1</h1>')
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/`([^`]+)`/g, '<code>$1</code>')
+                .replace(/\n/g, '<br>');
+        }
+        if (effectiveLanguage === 'html') return source;
+        if (effectiveLanguage === 'css') return `<style>${source}</style><main class="syncdev-preview">CSS preview</main>`;
+        if (effectiveLanguage === 'javascript') return `<main class="syncdev-preview">JavaScript preview</main><script>${source}</script>`;
+        return '';
+    }, [effectiveLanguage, source]);
 
     if (!username) return <Navigate to="/" replace />;
 
@@ -97,7 +102,7 @@ const EditorPage = () => {
                     onLeave={leaveRoom}
                 />
 
-                <section className="relative flex min-w-0 flex-col overflow-hidden rounded-[20px] border border-slate-200/90 bg-white transition-colors duration-300 dark:border-[#1b243c] dark:bg-[#070c1e]">
+                <section className="relative flex min-w-0 flex-col overflow-y-auto rounded-[20px] border border-slate-200/90 bg-white transition-colors duration-300 dark:border-[#1b243c] dark:bg-[#070c1e]">
                     <div className="pointer-events-none absolute inset-0 hidden bg-[radial-gradient(circle_at_58%_42%,rgba(34,39,77,0.16),transparent_44%)] dark:block" />
                     <WorkspaceHeader />
 
@@ -112,6 +117,7 @@ const EditorPage = () => {
                             autoDetect={languageChoice === 'auto'}
                             onCodeChange={(code) => {
                                 codeRef.current = code;
+                                setSource(code);
                             }}
                             onCursorChange={setCursor}
                             onLanguageDetected={setDetectedLanguage}
@@ -123,6 +129,13 @@ const EditorPage = () => {
                         />
                     </div>
 
+                    {PREVIEW_LANGUAGES.has(effectiveLanguage) && effectiveLanguage !== 'jsx' && (
+                        <details className="mx-5 mt-4 shrink-0 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs dark:border-[#293149] dark:bg-[#080e20]">
+                            <summary className="cursor-pointer font-bold text-slate-700 dark:text-slate-200">Sandboxed web preview</summary>
+                            <iframe title="Sandboxed web preview" sandbox="allow-scripts" srcDoc={previewDocument} className="mt-3 h-48 w-full rounded-lg border border-slate-200 bg-white dark:border-[#293149]" />
+                        </details>
+                    )}
+
                     <EditorStatusBar
                         cursor={cursor}
                         languageChoice={languageChoice}
@@ -132,7 +145,14 @@ const EditorPage = () => {
                         onLanguageChange={changeLanguage}
                         onPreferenceChange={updatePreferences}
                         onRun={runCode}
-                        isRunning={isRunning}
+                        isRunning={execution.state.status === 'running'}
+                    />
+
+                    <OutputPanel
+                        execution={execution}
+                        onRun={runCode}
+                        onStop={execution.stop}
+                        onCopy={() => toast.success('Output copied')}
                     />
                 </section>
             </div>
