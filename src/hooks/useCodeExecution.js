@@ -1,7 +1,7 @@
 import { useCallback, useReducer, useRef } from 'react';
 import { startCodeExecution } from '../utils/codeRunner';
 
-export const initialExecutionState = { status: 'idle', stdout: '', stderr: '', exitCode: null, duration: null, stdin: '', isOpen: true, height: 270 };
+export const initialExecutionState = { status: 'idle', stdout: '', stderr: '', exitCode: null, duration: null, stdin: '', isOpen: false, height: 240 };
 
 export const executionReducer = (state, action) => {
     switch (action.type) {

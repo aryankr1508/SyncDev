@@ -6,6 +6,7 @@ import EditorStatusBar from '../components/EditorStatusBar';
 import RoomSidebar from '../components/RoomSidebar';
 import WorkspaceHeader from '../components/WorkspaceHeader';
 import OutputPanel from '../components/OutputPanel';
+import VerticalResizeHandle from '../components/ui/VerticalResizeHandle';
 import { detectLanguage, LANGUAGE_MAP } from '../editor/languages';
 import { useEditorPreferences } from '../hooks/useEditorPreferences';
 import { useRoomSocket } from '../hooks/useRoomSocket';
@@ -19,6 +20,7 @@ import { useCodeExecution } from '../hooks/useCodeExecution';
 
 const EditorPage = () => {
     const codeRef = useRef('');
+    const editorFrameRef = useRef(null);
     const location = useLocation();
     const { roomId } = useParams();
     const navigate = useNavigate();
@@ -93,7 +95,7 @@ const EditorPage = () => {
 
     return (
         <main className="min-h-screen overflow-x-hidden bg-[#f7f9fb] p-3 transition-colors duration-300 dark:bg-[#020817] sm:p-5">
-            <div className="mx-auto grid min-h-[calc(100vh-24px)] max-w-[1760px] gap-4 lg:h-[calc(100vh-40px)] lg:min-h-[720px] lg:grid-cols-[285px_minmax(0,1fr)]">
+            <div className="mx-auto grid min-h-[calc(100vh-24px)] max-w-[1760px] gap-4 lg:h-[calc(100vh-40px)] lg:min-h-[650px] lg:grid-cols-[285px_minmax(0,1fr)]">
                 <RoomSidebar
                     clients={clients}
                     socketId={socket?.id}
@@ -102,11 +104,20 @@ const EditorPage = () => {
                     onLeave={leaveRoom}
                 />
 
-                <section className="relative flex min-w-0 flex-col overflow-y-auto rounded-[20px] border border-slate-200/90 bg-white transition-colors duration-300 dark:border-[#1b243c] dark:bg-[#070c1e]">
+                <section className={`relative flex min-w-0 flex-col rounded-[20px] border border-slate-200/90 bg-white transition-colors duration-300 dark:border-[#1b243c] dark:bg-[#070c1e] ${preferences.editorHeight ? 'overflow-y-auto' : 'overflow-hidden'}`}>
                     <div className="pointer-events-none absolute inset-0 hidden bg-[radial-gradient(circle_at_58%_42%,rgba(34,39,77,0.16),transparent_44%)] dark:block" />
                     <WorkspaceHeader />
 
-                    <div className="mx-5 min-h-[480px] flex-1 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[inset_0_1px_0_rgba(255,255,255,0.6)] transition-colors dark:border-[#293149] dark:bg-[#0b1023] dark:shadow-none">
+                    <div
+                        ref={editorFrameRef}
+                        style={preferences.editorHeight
+                            ? {
+                                flex: '0 0 auto',
+                                height: `${preferences.editorHeight}px`,
+                            }
+                            : undefined}
+                        className="relative mx-3 min-h-[440px] flex-1 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[inset_0_1px_0_rgba(255,255,255,0.6)] transition-colors dark:border-[#293149] dark:bg-[#0b1023] dark:shadow-none sm:mx-5 lg:min-h-[160px]"
+                    >
                         <Editor
                             socket={socket}
                             roomId={roomId}
@@ -127,10 +138,29 @@ const EditorPage = () => {
                                 })
                             }
                         />
+                        <div className="absolute inset-x-0 bottom-0 z-30">
+                            <VerticalResizeHandle
+                                ariaLabel="Resize code editor"
+                                currentHeight={() =>
+                                    editorFrameRef.current?.getBoundingClientRect().height || 440
+                                }
+                                minHeight={280}
+                                maxHeight={() => Math.max(320, Math.min(900, window.innerHeight - 180))}
+                                onResize={(height) =>
+                                    updatePreferences({
+                                        type: 'SET_EDITOR_HEIGHT',
+                                        value: height,
+                                    })
+                                }
+                                onReset={() =>
+                                    updatePreferences({ type: 'RESET_EDITOR_HEIGHT' })
+                                }
+                            />
+                        </div>
                     </div>
 
-                    {PREVIEW_LANGUAGES.has(effectiveLanguage) && effectiveLanguage !== 'jsx' && (
-                        <details className="mx-5 mt-4 shrink-0 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs dark:border-[#293149] dark:bg-[#080e20]">
+                    {source.trim() && PREVIEW_LANGUAGES.has(effectiveLanguage) && effectiveLanguage !== 'jsx' && (
+                        <details className="mx-3 mt-4 max-h-[32vh] shrink-0 overflow-auto rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs dark:border-[#293149] dark:bg-[#080e20] sm:mx-5">
                             <summary className="cursor-pointer font-bold text-slate-700 dark:text-slate-200">Sandboxed web preview</summary>
                             <iframe title="Sandboxed web preview" sandbox="allow-scripts" srcDoc={previewDocument} className="mt-3 h-48 w-full rounded-lg border border-slate-200 bg-white dark:border-[#293149]" />
                         </details>
@@ -145,6 +175,7 @@ const EditorPage = () => {
                         onLanguageChange={changeLanguage}
                         onPreferenceChange={updatePreferences}
                         onRun={runCode}
+                        onShowOutput={() => execution.dispatch({ type: 'OPEN', value: true })}
                         isRunning={execution.state.status === 'running'}
                     />
 

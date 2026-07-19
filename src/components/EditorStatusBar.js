@@ -35,6 +35,7 @@ const EditorStatusBar = ({
     onLanguageChange,
     onPreferenceChange,
     onRun,
+    onShowOutput,
     isRunning,
 }) => {
     const effectiveLanguage =
@@ -49,7 +50,7 @@ const EditorStatusBar = ({
     };
 
     return (
-        <footer className="relative z-30 mx-5 mb-5 mt-5 flex min-h-[88px] shrink-0 flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-[11px] text-slate-500 shadow-sm transition-colors dark:border-[#252e47] dark:bg-[#080e20] dark:text-[#9299ae]">
+        <footer className="relative z-30 mx-3 mb-4 mt-4 flex min-h-[88px] shrink-0 flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-3 py-3 text-[11px] text-slate-500 shadow-sm transition-colors dark:border-[#252e47] dark:bg-[#080e20] dark:text-[#9299ae] sm:mx-5 sm:mb-5 sm:mt-5 sm:px-4">
             <div className="flex min-w-0 flex-wrap items-center gap-3">
                 <details className="group relative">
                     <summary
@@ -201,6 +202,17 @@ const EditorStatusBar = ({
                             <button type="button" onClick={onRun} className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-xs font-semibold hover:bg-slate-100 dark:hover:bg-white/5">
                                 <PlayIcon className="h-4 w-4 text-sync" />
                                 Run with configured runtime
+                            </button>
+                            <button
+                                type="button"
+                                onClick={(event) => {
+                                    onShowOutput();
+                                    event.currentTarget.closest('details')?.removeAttribute('open');
+                                }}
+                                className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-xs font-semibold hover:bg-slate-100 dark:hover:bg-white/5"
+                            >
+                                <CodeIcon className="h-4 w-4 text-sync" />
+                                Show output panel
                             </button>
                             <p className="px-3 pb-1 pt-2 text-[10px] leading-4 text-slate-400">JavaScript runs locally. Other runtimes use a configured isolated provider and stop after 4 seconds.</p>
                         </div>

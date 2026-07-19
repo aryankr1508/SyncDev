@@ -5,6 +5,7 @@ const defaults = {
     theme: 'dracula',
     fontSize: 16,
     wordWrap: true,
+    editorHeight: null,
 };
 const validThemes = new Set([
     'dracula',
@@ -25,6 +26,9 @@ const loadPreferences = () => {
                 typeof cached?.wordWrap === 'boolean'
                     ? cached.wordWrap
                     : defaults.wordWrap,
+            editorHeight: Number.isFinite(cached?.editorHeight)
+                ? Math.min(900, Math.max(280, cached.editorHeight))
+                : defaults.editorHeight,
         };
     } catch (error) {
         return defaults;
@@ -44,6 +48,13 @@ const preferenceReducer = (state, action) => {
             };
         case 'TOGGLE_WORD_WRAP':
             return { ...state, wordWrap: !state.wordWrap };
+        case 'SET_EDITOR_HEIGHT':
+            return {
+                ...state,
+                editorHeight: Math.min(900, Math.max(280, action.value)),
+            };
+        case 'RESET_EDITOR_HEIGHT':
+            return { ...state, editorHeight: defaults.editorHeight };
         default:
             return state;
     }

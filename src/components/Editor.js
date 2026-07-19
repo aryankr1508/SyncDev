@@ -261,7 +261,7 @@ const Editor = ({
     }, [socket]);
 
     return (
-        <div className="relative h-full min-h-[480px] overflow-hidden">
+        <div className="relative h-full min-h-[440px] overflow-hidden lg:min-h-0">
             <textarea
                 ref={textareaRef}
                 aria-label="Collaborative code editor"

@@ -29,10 +29,24 @@ app.get('/health', (request, response) => {
     });
 });
 
-app.use(express.static(path.join(__dirname, 'build')));
-app.get('*', (request, response) => {
-    response.sendFile(path.join(__dirname, 'build', 'index.html'));
-});
+const isDevelopmentServer =
+    process.env.NODE_ENV === 'development' ||
+    process.env.npm_lifecycle_event === 'server:dev';
+
+if (isDevelopmentServer) {
+    app.get('/', (request, response) => {
+        response.json({
+            service: 'SyncDev realtime server',
+            status: 'ok',
+            frontend: 'http://localhost:3000',
+        });
+    });
+} else {
+    app.use(express.static(path.join(__dirname, 'build')));
+    app.get('*', (request, response) => {
+        response.sendFile(path.join(__dirname, 'build', 'index.html'));
+    });
+}
 
 io.on('connection', (socket) => {
     console.log(`Socket connected: ${socket.id}`);

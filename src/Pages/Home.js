@@ -109,7 +109,7 @@ const Home = () => {
                                     type="button"
                                     onClick={copyRoomId}
                                     disabled={!roomId.trim()}
-                                    className="absolute right-2 top-1/2 rounded-lg p-2 text-[#8c92aa] transition hover:bg-white/5 hover:text-sync disabled:cursor-default disabled:opacity-55"
+                                    className="absolute inset-y-0 right-2 my-auto flex h-9 w-9 items-center justify-center rounded-lg text-[#8c92aa] transition hover:bg-slate-200/70 hover:text-sync disabled:cursor-default disabled:opacity-55 dark:hover:bg-white/5"
                                     aria-label="Copy room ID"
                                 >
                                     <CopyIcon className="h-4 w-4" />
