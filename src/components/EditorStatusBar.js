@@ -200,9 +200,9 @@ const EditorStatusBar = ({
                         <div className={`${popoverClass} -right-0 w-56 text-slate-700 dark:text-[#c0c4d1]`}>
                             <button type="button" onClick={onRun} className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-xs font-semibold hover:bg-slate-100 dark:hover:bg-white/5">
                                 <PlayIcon className="h-4 w-4 text-sync" />
-                                Run JavaScript in sandbox
+                                Run with configured runtime
                             </button>
-                            <p className="px-3 pb-1 pt-2 text-[10px] leading-4 text-slate-400">Execution stops automatically after 4 seconds.</p>
+                            <p className="px-3 pb-1 pt-2 text-[10px] leading-4 text-slate-400">JavaScript runs locally. Other runtimes use a configured isolated provider and stop after 4 seconds.</p>
                         </div>
                     </details>
                 </div>
