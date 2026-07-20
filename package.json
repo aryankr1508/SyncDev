@@ -3,7 +3,6 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "@netlify/blobs": "^10.1.0",
     "codemirror": "^5.65.20",
     "express": "^4.21.2",
     "react": "^17.0.2",

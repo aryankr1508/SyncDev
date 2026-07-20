@@ -37,9 +37,6 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# Local Netlify folder
-.netlify/
-
 # Local Vercel project link
 .vercel/
 

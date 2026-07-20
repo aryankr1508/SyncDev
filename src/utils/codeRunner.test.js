@@ -18,13 +18,6 @@ test('reports unsupported languages without executing them', async () => {
     await expect(startCodeExecution({ language: 'sql', source: 'select 1' }).promise).resolves.toMatchObject({ status: 'error', stderr: expect.stringMatching(/not available/) });
 });
 
-test('selects the Vercel execution endpoint for Vercel builds', () => {
-    const previousTransport = process.env.REACT_APP_SYNC_TRANSPORT;
-    process.env.REACT_APP_SYNC_TRANSPORT = 'vercel';
+test('uses the Vercel execution endpoint by default', () => {
     expect(getRemoteExecutionEndpoint()).toBe('/api/execute');
-    if (previousTransport === undefined) {
-        delete process.env.REACT_APP_SYNC_TRANSPORT;
-    } else {
-        process.env.REACT_APP_SYNC_TRANSPORT = previousTransport;
-    }
 });

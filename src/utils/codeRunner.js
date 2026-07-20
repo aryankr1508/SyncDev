@@ -93,18 +93,7 @@ const runValidation = ({ language, source }) => {
 };
 
 export const getRemoteExecutionEndpoint = () => {
-    if (process.env.REACT_APP_EXECUTION_ENDPOINT) {
-        return process.env.REACT_APP_EXECUTION_ENDPOINT;
-    }
-
-    if (
-        process.env.REACT_APP_SYNC_TRANSPORT === 'vercel' ||
-        window.location.hostname.endsWith('.vercel.app')
-    ) {
-        return '/api/execute';
-    }
-
-    return '/.netlify/functions/execute';
+    return process.env.REACT_APP_EXECUTION_ENDPOINT || '/api/execute';
 };
 
 const runRemote = async (request) => {
@@ -124,5 +113,3 @@ export const startCodeExecution = (request, onOutput) => {
     if (REMOTE_LANGUAGES.has(normalized.language)) return { promise: runRemote(normalized), cancel: () => {} };
     return { promise: Promise.resolve(result({ status: 'error', exitCode: 1, stderr: `Execution is not available for ${normalized.language}.\n` })), cancel: () => {} };
 };
-
-export const runJavaScriptLegacy = (source, timeout) => startCodeExecution({ language: 'javascript', source, timeout }).promise;
