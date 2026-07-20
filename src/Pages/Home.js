@@ -163,7 +163,7 @@ const Home = () => {
                     <footer className="relative mt-8 text-center text-xs text-slate-500 dark:text-[#83899e]">
                         Developed by{' '}
                         <a
-                            href="https://aryankr1508.netlify.app/"
+                            href="https://github.com/aryankr1508"
                             className="font-semibold text-sync transition hover:text-[#79f0b3] hover:underline hover:underline-offset-4"
                             target="_blank"
                             rel="noreferrer"

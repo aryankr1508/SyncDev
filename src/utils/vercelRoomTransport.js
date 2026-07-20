@@ -8,7 +8,7 @@ const createClientId = () =>
     window.crypto?.randomUUID?.() ||
     `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
-export class PollingRoomTransport {
+class PollingRoomTransport {
     constructor(endpoint) {
         this.endpoint = endpoint;
         this.id = createClientId();
@@ -126,10 +126,7 @@ export class PollingRoomTransport {
         if (!this.roomId || document.hidden) return;
 
         try {
-            const query = new URLSearchParams({
-                roomId: this.roomId,
-                clientId: this.id,
-            });
+            const query = new URLSearchParams({ roomId: this.roomId });
             const response = await fetch(`${this.endpoint}?${query}`);
             if (!response.ok) throw new Error(`Sync poll failed (${response.status})`);
             this.applyState(await response.json());
@@ -212,12 +209,6 @@ export class PollingRoomTransport {
             this.lastRevision = revision;
             if (authorId !== this.id) this.notify(ACTIONS.CODE_CHANGE, { code });
         }
-    }
-}
-
-export class NetlifyRoomTransport extends PollingRoomTransport {
-    constructor(endpoint = '/.netlify/functions/room-sync') {
-        super(endpoint);
     }
 }
 
