@@ -1,6 +1,6 @@
 # Code Sync
 
-A real-time collaborative code editor built with React, Tailwind CSS, CodeMirror, Socket.IO, and a Netlify-native production sync fallback.
+A real-time collaborative code editor built with React, Tailwind CSS, CodeMirror, and provider-aware room synchronization for Vercel, Netlify, and local Socket.IO development.
 
 ## Editor features
 
@@ -41,6 +41,22 @@ Client-side routes are rewritten to `index.html` through `netlify.toml`, so shar
 Production rooms use the bundled `room-sync` Netlify Function and strongly consistent Netlify Blobs storage. Presence is maintained with lightweight heartbeats, code changes are debounced before persistence, stale participants are removed automatically, and empty-room code is deleted. This path is selected through `REACT_APP_SYNC_TRANSPORT=netlify` in `netlify.toml`, so no separate backend account is required for the Netlify deployment.
 
 Local development and conventional Node deployments continue using the Socket.IO server. A future dedicated socket host can override the production fallback by setting `REACT_APP_BACKEND_URL` to its public HTTPS URL and removing the Netlify transport override.
+
+### Vercel migration
+
+The Vercel deployment uses the functions in `api/` and the Supabase schema in `supabase/schema.sql`. Netlify remains supported during migration so production can be verified before DNS is moved.
+
+1. Create a Supabase project and run `supabase/schema.sql` in its SQL editor.
+2. Import `aryankr1508/SyncDev` into Vercel with the Create React App preset.
+3. Add these variables to Production, Preview, and Development environments in Vercel:
+   - `REACT_APP_SYNC_TRANSPORT=vercel`
+   - `REACT_APP_EXECUTION_ENDPOINT=/api/execute`
+   - `SUPABASE_URL`
+   - `SUPABASE_SERVICE_ROLE_KEY` (server-only; never prefix it with `REACT_APP_`)
+   - `CODE_EXECUTION_PROVIDER_URL` and `CODE_EXECUTION_PROVIDER_TOKEN` when remote language execution is enabled
+4. Deploy and verify `/api/room-sync?health=1`, direct room URLs, two-browser collaboration, and remote execution before moving the domain.
+
+Vercel uses `npm run verify` as the deployment gate and publishes `build/`. The SPA rewrite in `vercel.json` keeps shared editor-room URLs working when opened directly. Pushes to the configured production branch deploy automatically through Vercel's Git integration.
 
 ## Commands
 

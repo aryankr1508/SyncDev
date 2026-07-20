@@ -1,0 +1,6 @@
+.git/
+.netlify/
+netlify/
+netlify.toml
+tmp/
+deep-research-report.md

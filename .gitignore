@@ -39,3 +39,9 @@ pnpm-debug.log*
 
 # Local Netlify folder
 .netlify/
+
+# Local Vercel project link
+.vercel/
+
+# Local Supabase project link and CLI cache
+supabase/.temp/
