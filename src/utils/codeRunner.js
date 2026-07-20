@@ -92,8 +92,23 @@ const runValidation = ({ language, source }) => {
     }
 };
 
+export const getRemoteExecutionEndpoint = () => {
+    if (process.env.REACT_APP_EXECUTION_ENDPOINT) {
+        return process.env.REACT_APP_EXECUTION_ENDPOINT;
+    }
+
+    if (
+        process.env.REACT_APP_SYNC_TRANSPORT === 'vercel' ||
+        window.location.hostname.endsWith('.vercel.app')
+    ) {
+        return '/api/execute';
+    }
+
+    return '/.netlify/functions/execute';
+};
+
 const runRemote = async (request) => {
-    const response = await fetch('/.netlify/functions/execute', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(request) });
+    const response = await fetch(getRemoteExecutionEndpoint(), { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(request) });
     const body = await response.json().catch(() => ({}));
     if (!response.ok) return result({ status: 'error', exitCode: 1, stderr: `${body.message || 'Remote execution is unavailable.'}\n` });
     return result({ ...body, stdout: bounded(body.stdout, EXECUTION_LIMITS.output), stderr: bounded(body.stderr, EXECUTION_LIMITS.output) });

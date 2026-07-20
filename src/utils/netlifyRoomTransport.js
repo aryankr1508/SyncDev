@@ -8,8 +8,8 @@ const createClientId = () =>
     window.crypto?.randomUUID?.() ||
     `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
-export class NetlifyRoomTransport {
-    constructor(endpoint = '/.netlify/functions/room-sync') {
+export class PollingRoomTransport {
+    constructor(endpoint) {
         this.endpoint = endpoint;
         this.id = createClientId();
         this.connected = false;
@@ -212,5 +212,17 @@ export class NetlifyRoomTransport {
             this.lastRevision = revision;
             if (authorId !== this.id) this.notify(ACTIONS.CODE_CHANGE, { code });
         }
+    }
+}
+
+export class NetlifyRoomTransport extends PollingRoomTransport {
+    constructor(endpoint = '/.netlify/functions/room-sync') {
+        super(endpoint);
+    }
+}
+
+export class VercelRoomTransport extends PollingRoomTransport {
+    constructor(endpoint = '/api/room-sync') {
+        super(endpoint);
     }
 }
