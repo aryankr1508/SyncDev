@@ -81,7 +81,8 @@ The deployed project is already configured. To reproduce the infrastructure in a
    - `REACT_APP_EXECUTION_ENDPOINT=/api/execute`
    - `SUPABASE_URL`
    - `SUPABASE_SERVICE_ROLE_KEY` (server-only; never prefix it with `REACT_APP_`)
-   - `CODE_EXECUTION_PROVIDER_URL` and `CODE_EXECUTION_PROVIDER_TOKEN` when remote language execution is enabled
+   - `CODE_EXECUTION_SANDBOX_SNAPSHOT` for the Java, Python, C, and C++ runtime snapshot
+   - `CODE_EXECUTION_PROVIDER_URL` and `CODE_EXECUTION_PROVIDER_TOKEN` only when extending execution to additional runtimes
 4. Deploy and verify `/api/room-sync?health=1`, direct room URLs, two-browser collaboration, and remote execution.
 
 Vercel uses `npm run verify` as the deployment gate and publishes `build/`. The SPA rewrite in `vercel.json` keeps shared editor-room URLs working when opened directly. Pushes to the configured production branch deploy automatically through Vercel's Git integration.
@@ -100,6 +101,10 @@ Vercel uses `npm run verify` as the deployment gate and publishes `build/`. The 
   a configured Supabase project
 - `npm run smoke:ui` — drive the rendered product through a headless Chrome
   checkpoint and evaluation flow (defaults to `http://localhost:3100`)
+- `npm run smoke:execution` — compile and run Java, Python, C, and C++ in
+  isolated Vercel Sandboxes (or against `SYNCDEV_EXECUTION_URL`)
+- `npm run sandbox:snapshot` — create the reusable Java/Python/GCC/G++
+  runtime snapshot; requires a linked Vercel project and OIDC credentials
 
 The local Node server health check is available at `/health`. The production synchronization health check is available at `/api/room-sync?health=1`.
 

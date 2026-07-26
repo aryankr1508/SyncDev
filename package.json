@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@vercel/sandbox": "^2.9.0",
     "codemirror": "^5.65.20",
     "express": "^4.21.2",
     "react": "^17.0.2",
@@ -25,6 +26,8 @@
     "smoke:session": "node scripts/session-smoke.js",
     "smoke:api-session": "node scripts/api-session-smoke.js",
     "smoke:ui": "node scripts/ui-smoke.js",
+    "smoke:execution": "node scripts/execution-smoke.js",
+    "sandbox:snapshot": "node scripts/create-execution-snapshot.js",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {

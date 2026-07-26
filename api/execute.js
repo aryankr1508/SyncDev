@@ -1,3 +1,8 @@
+const {
+    EXECUTABLE_LANGUAGES,
+    runInVercelSandbox,
+} = require('../server/sandbox-execution');
+
 const LIMITS = { source: 100000, stdin: 20000, timeout: 10000 };
 const LANGUAGES = new Set([
     'python',
@@ -29,6 +34,39 @@ const limited = (key) => {
 const readBody = (request) => {
     if (typeof request.body === 'string') return JSON.parse(request.body || '{}');
     return request.body || {};
+};
+
+const runConfiguredProvider = async ({
+    providerUrl,
+    providerToken,
+    language,
+    source,
+    stdin,
+    timeout,
+    runtime,
+}) => {
+    const providerResponse = await fetch(providerUrl, {
+        method: 'POST',
+        headers: {
+            'content-type': 'application/json',
+            authorization: `Bearer ${providerToken}`,
+        },
+        body: JSON.stringify({
+            language,
+            source,
+            stdin,
+            timeout,
+            runtime,
+        }),
+        signal: AbortSignal.timeout(timeout + 1500),
+    });
+    const output = await providerResponse.json();
+    if (!providerResponse.ok) {
+        const error = new Error('The execution provider rejected this run.');
+        error.code = 'PROVIDER_REJECTED';
+        throw error;
+    }
+    return output;
 };
 
 module.exports = async function handler(request, response) {
@@ -69,33 +107,27 @@ module.exports = async function handler(request, response) {
 
         const providerUrl = process.env.CODE_EXECUTION_PROVIDER_URL;
         const providerToken = process.env.CODE_EXECUTION_PROVIDER_TOKEN;
-        if (!providerUrl || !providerToken) {
-            sendJson(response, 503, {
-                message:
-                    'Remote execution is not configured. Set an isolated compiler provider before running this language.',
-            });
-            return;
-        }
-
-        const providerResponse = await fetch(providerUrl, {
-            method: 'POST',
-            headers: {
-                'content-type': 'application/json',
-                authorization: `Bearer ${providerToken}`,
-            },
-            body: JSON.stringify({
+        let output;
+        if (providerUrl && providerToken) {
+            output = await runConfiguredProvider({
+                providerUrl,
+                providerToken,
                 language,
                 source,
                 stdin,
                 timeout,
                 runtime: String(body.runtime || ''),
-            }),
-            signal: AbortSignal.timeout(timeout + 1500),
-        });
-        const output = await providerResponse.json();
-        if (!providerResponse.ok) {
-            sendJson(response, 502, {
-                message: 'The execution provider rejected this run.',
+            });
+        } else if (EXECUTABLE_LANGUAGES.has(language)) {
+            output = await runInVercelSandbox({
+                language,
+                source,
+                stdin,
+                timeout,
+            });
+        } else {
+            sendJson(response, 503, {
+                message: `${language} execution is not enabled yet. Java, Python, C, C++, and browser JavaScript are currently supported.`,
             });
             return;
         }
@@ -106,13 +138,26 @@ module.exports = async function handler(request, response) {
             exitCode: Number.isInteger(output.exitCode) ? output.exitCode : 1,
             duration: Number(output.duration) || 0,
             status: output.status || 'success',
+            provider: output.provider || 'configured-provider',
         });
     } catch (error) {
-        sendJson(response, 502, {
+        console.error('Isolated execution failed.', {
+            name: error.name,
+            code: error.code,
+            message: error.message,
+        });
+        const status =
+            error.code === 'SANDBOX_NOT_CONFIGURED' ? 503 : 502;
+        sendJson(response, status, {
             message:
-                error.name === 'TimeoutError'
+                error.name === 'TimeoutError' ||
+                error.code === 'SANDBOX_TIMEOUT'
                     ? 'Execution provider timed out.'
-                    : 'Execution provider is temporarily unavailable.',
+                    : error.code === 'SANDBOX_NOT_CONFIGURED'
+                      ? error.message
+                      : error.code === 'PROVIDER_REJECTED'
+                        ? error.message
+                        : 'The isolated execution service is temporarily unavailable.',
         });
     }
 };

@@ -21,3 +21,33 @@ test('reports unsupported languages without executing them', async () => {
 test('uses the Vercel execution endpoint by default', () => {
     expect(getRemoteExecutionEndpoint()).toBe('/api/execute');
 });
+
+test('allows a remote execution request to be cancelled', async () => {
+    const originalFetch = global.fetch;
+    global.fetch = jest.fn(
+        (url, { signal }) =>
+            new Promise((resolve, reject) => {
+                signal.addEventListener('abort', () => {
+                    const error = new Error('aborted');
+                    error.name = 'AbortError';
+                    reject(error);
+                });
+            })
+    );
+
+    try {
+        const execution = startCodeExecution({
+            language: 'java',
+            source: 'class Main {}',
+        });
+        execution.cancel();
+
+        await expect(execution.promise).resolves.toMatchObject({
+            status: 'cancelled',
+            exitCode: null,
+            stderr: 'Execution cancelled.\n',
+        });
+    } finally {
+        global.fetch = originalFetch;
+    }
+});
