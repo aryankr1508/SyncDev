@@ -231,7 +231,8 @@ returns the role-filtered room state.
 The default server implementation restores the runtime named by
 `CODE_EXECUTION_SANDBOX_SNAPSHOT`, writes source and standard input into a
 fresh microVM, disables outbound networking, compiles when required, captures
-bounded output, and destroys the sandbox in `finally`. Recreate the snapshot
+bounded output, disables per-run persistence so executions cannot accumulate
+snapshots, and destroys the sandbox in `finally`. Recreate the runtime snapshot
 with `npm run sandbox:snapshot` after changing compiler versions, then update
 the environment variable in all three Vercel environments.
 
