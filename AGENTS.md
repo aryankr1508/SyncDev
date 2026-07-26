@@ -224,7 +224,9 @@ returns the role-filtered room state.
 
 - Preserve unrelated local or untracked files. In particular, `deep-research-report.md` may exist locally and is not part of application changes unless explicitly requested.
 - Never use `git add -A` when unrelated work is present; stage explicit paths.
-- Use an `agent/<description>` branch, run `npm run verify`, push, and open a draft pull request.
+- Use an `Aryan/<description>` branch, run `npm run verify`, push, and open a
+  draft pull request. Preserve the capital `A`; do not create `agent/*` or
+  `codex/*` working branches.
 - Do not remove Express, Socket.IO, Tailwind, PostCSS, or Autoprefixer as “unused”; they are used by local development or the build configuration even if a basic dependency scanner reports false positives.
 - Do not weaken Supabase RLS or expose the server secret to the client.
 - Do not rewrite Git history or rotate/delete infrastructure without explicit authorization and an exact resource-ID check.
