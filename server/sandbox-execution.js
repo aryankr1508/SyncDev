@@ -107,6 +107,7 @@ const runInVercelSandbox = async (
         timeout: Math.max(15000, timeout + 8000),
         resources: { vcpus: 1 },
         networkPolicy: 'deny-all',
+        persistent: false,
         tags: { purpose: 'syncdev-execution', language },
     });
 

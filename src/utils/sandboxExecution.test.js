@@ -79,6 +79,7 @@ test('compiles and runs Java inside a network-isolated snapshot', async () => {
         expect.objectContaining({
             source: { type: 'snapshot', snapshotId: 'snap_test' },
             networkPolicy: 'deny-all',
+            persistent: false,
             resources: { vcpus: 1 },
         })
     );
