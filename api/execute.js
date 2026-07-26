@@ -141,6 +141,11 @@ module.exports = async function handler(request, response) {
             provider: output.provider || 'configured-provider',
         });
     } catch (error) {
+        console.error('Isolated execution failed.', {
+            name: error.name,
+            code: error.code,
+            message: error.message,
+        });
         const status =
             error.code === 'SANDBOX_NOT_CONFIGURED' ? 503 : 502;
         sendJson(response, status, {
