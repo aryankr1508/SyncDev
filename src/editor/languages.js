@@ -179,10 +179,12 @@ export const detectLanguage = (code = '') => {
             /\b(?:let|var)\s+\w+\s*:\s*[A-Z]\w*/g,
             /@(?:State|Binding|main|Published)\b/g,
         ]),
-        sql: countMatches(source, [
-            /\bSELECT\b[\s\S]+\bFROM\b/gi,
-            /\b(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM|CREATE\s+TABLE|ALTER\s+TABLE)\b/gi,
-            /\b(?:INNER|LEFT|RIGHT)?\s*JOIN\b/gi,
+        sql: scoreMatches(source, [
+            [/^\s*(?:SELECT|WITH)\b/gim, 4],
+            [/\bSELECT\b[\s\S]+\bFROM\b/gi, 5],
+            [/\b(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM|CREATE\s+TABLE|ALTER\s+TABLE|DROP\s+TABLE)\b/gi, 5],
+            [/\b(?:INNER|LEFT|RIGHT|FULL|CROSS)?\s*JOIN\b/gi, 4],
+            [/\b(?:WHERE|GROUP\s+BY|ORDER\s+BY|HAVING|LIMIT|PRAGMA)\b/gi, 2],
         ]),
         scss: countMatches(source, [
             /^\s*\$[\w-]+\s*:/gm,

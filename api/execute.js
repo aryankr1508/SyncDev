@@ -15,6 +15,7 @@ const LANGUAGES = new Set([
     'php',
     'ruby',
     'kotlin',
+    'sql',
 ]);
 const visits = new Map();
 
@@ -127,7 +128,7 @@ module.exports = async function handler(request, response) {
             });
         } else {
             sendJson(response, 503, {
-                message: `${language} execution is not enabled yet. Java, Python, C, C++, and browser JavaScript are currently supported.`,
+                message: `${language} execution is not enabled yet. Java, Python, C, C++, SQL, and browser JavaScript are currently supported.`,
             });
             return;
         }

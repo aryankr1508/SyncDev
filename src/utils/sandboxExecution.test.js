@@ -132,6 +132,39 @@ test('returns compiler diagnostics and still destroys the sandbox', async () => 
     expect(sandbox.stop).toHaveBeenCalled();
 });
 
+test('runs SQL against an ephemeral SQLite database', async () => {
+    const { SandboxClass, sandbox } = createSandboxMock(
+        [{ exitCode: 0 }],
+        {
+            'stdout.txt': 'answer\n------\n42\n',
+        }
+    );
+
+    const output = await runInVercelSandbox(
+        {
+            language: 'sql',
+            source: 'SELECT 42 AS answer;',
+            stdin: '',
+            timeout: 4000,
+        },
+        { SandboxClass, snapshotId: 'snap_test' }
+    );
+
+    expect(sandbox.fs.writeFile).toHaveBeenCalledWith(
+        'main.sql',
+        'SELECT 42 AS answer;'
+    );
+    expect(sandbox.fs.writeFile).toHaveBeenCalledWith(
+        'sql-runner.py',
+        expect.stringContaining('sqlite3.connect(":memory:")')
+    );
+    expect(output).toMatchObject({
+        stdout: 'answer\n------\n42\n',
+        exitCode: 0,
+        status: 'success',
+    });
+});
+
 test('normalizes sandbox termination into a useful timeout result', async () => {
     const { SandboxClass, sandbox } = createSandboxMock(
         [{ exitCode: 137 }],

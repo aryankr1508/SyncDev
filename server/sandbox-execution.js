@@ -3,7 +3,67 @@ const EXECUTABLE_LANGUAGES = new Set([
     'python',
     'c',
     'cpp',
+    'sql',
 ]);
+
+const SQL_RUNNER = String.raw`
+import sqlite3
+import sys
+from pathlib import Path
+
+
+def split_statements(source):
+    statement = ""
+    for character in source:
+        statement += character
+        if character == ";" and sqlite3.complete_statement(statement):
+            if statement.strip():
+                yield statement.strip()
+            statement = ""
+    if statement.strip():
+        yield statement.strip()
+
+
+def display(value):
+    if value is None:
+        return "NULL"
+    if isinstance(value, bytes):
+        return value.hex()
+    return str(value).replace("\r", "\\r").replace("\n", "\\n")
+
+
+def main():
+    source = Path("main.sql").read_text(encoding="utf-8")
+    connection = sqlite3.connect(":memory:")
+    connection.execute("PRAGMA foreign_keys = ON")
+    produced_output = False
+
+    try:
+        for statement in split_statements(source):
+            cursor = connection.execute(statement)
+            if cursor.description:
+                columns = [column[0] for column in cursor.description]
+                rows = cursor.fetchall()
+                if produced_output:
+                    print()
+                print(" | ".join(columns))
+                print("-+-".join("-" * max(1, len(column)) for column in columns))
+                for row in rows:
+                    print(" | ".join(display(value) for value in row))
+                produced_output = True
+        connection.commit()
+        if not produced_output:
+            print("SQL executed successfully.")
+    finally:
+        connection.close()
+
+
+try:
+    main()
+except sqlite3.Error as error:
+    print(f"SQL error: {error}", file=sys.stderr)
+    raise SystemExit(1)
+`.trimStart();
 
 const FILES = {
     python: {
@@ -20,6 +80,14 @@ const FILES = {
         sourcePath: 'main.cpp',
         compile: ['g++', ['main.cpp', '-O2', '-std=c++17', '-o', 'main']],
         run: './main < stdin.txt',
+    },
+    sql: {
+        sourcePath: 'main.sql',
+        compile: null,
+        run: 'python3 sql-runner.py',
+        supportFiles: {
+            'sql-runner.py': SQL_RUNNER,
+        },
     },
 };
 
@@ -123,6 +191,9 @@ const runInVercelSandbox = async (
             sandbox.fs.writeFile('stdin.txt', stdin),
             sandbox.fs.writeFile('stdout.txt', ''),
             sandbox.fs.writeFile('stderr.txt', ''),
+            ...Object.entries(spec.supportFiles || {}).map(([path, content]) =>
+                sandbox.fs.writeFile(path, content)
+            ),
         ]);
 
         if (spec.compile) {

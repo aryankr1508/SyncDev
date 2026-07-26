@@ -6,7 +6,7 @@ export const EXECUTION_LIMITS = {
 };
 
 export const REMOTE_LANGUAGES = new Set([
-    'python', 'java', 'c', 'cpp', 'csharp', 'go', 'rust', 'php', 'ruby', 'kotlin',
+    'python', 'java', 'c', 'cpp', 'csharp', 'go', 'rust', 'php', 'ruby', 'kotlin', 'sql',
 ]);
 export const PREVIEW_LANGUAGES = new Set(['html', 'css', 'javascript', 'jsx', 'markdown']);
 
