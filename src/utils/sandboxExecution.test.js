@@ -52,7 +52,8 @@ test('derives a safe Java filename and runtime class from source', () => {
                 'dev/sync/Runner.java',
             ],
         ],
-        run: 'java dev.sync.Runner < stdin.txt',
+        run:
+            'LC_ALL=C.UTF-8 LANG=C.UTF-8 java -Dfile.encoding=UTF-8 -Dstdout.encoding=UTF-8 -Dstderr.encoding=UTF-8 dev.sync.Runner < stdin.txt',
     });
 });
 
@@ -95,7 +96,7 @@ test('compiles and runs Java inside a network-isolated snapshot', async () => {
             cmd: 'bash',
             args: [
                 '-lc',
-                'ulimit -f 128 -u 64; java Main < stdin.txt > stdout.txt 2> stderr.txt',
+                'ulimit -f 128 -u 64; LC_ALL=C.UTF-8 LANG=C.UTF-8 java -Dfile.encoding=UTF-8 -Dstdout.encoding=UTF-8 -Dstderr.encoding=UTF-8 Main < stdin.txt > stdout.txt 2> stderr.txt',
             ],
             timeoutMs: 4000,
         })

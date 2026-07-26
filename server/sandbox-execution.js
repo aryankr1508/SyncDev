@@ -91,6 +91,9 @@ const FILES = {
     },
 };
 
+const JAVA_UTF8_RUNTIME =
+    'LC_ALL=C.UTF-8 LANG=C.UTF-8 java -Dfile.encoding=UTF-8 -Dstdout.encoding=UTF-8 -Dstderr.encoding=UTF-8';
+
 const javaTarget = (source) => {
     const packageName =
         source.match(
@@ -113,7 +116,7 @@ const javaTarget = (source) => {
     return {
         sourcePath,
         compile: ['javac', ['-encoding', 'UTF-8', '-d', '.', sourcePath]],
-        run: `java ${runtimeClass} < stdin.txt`,
+        run: `${JAVA_UTF8_RUNTIME} ${runtimeClass} < stdin.txt`,
     };
 };
 
