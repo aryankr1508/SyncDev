@@ -8,6 +8,12 @@
       "maxDuration": 15
     }
   },
+  "crons": [
+    {
+      "path": "/api/keepalive",
+      "schedule": "17 4 * * *"
+    }
+  ],
   "rewrites": [
     {
       "source": "/(.*)",

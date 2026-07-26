@@ -102,3 +102,9 @@ Vercel uses `npm run verify` as the deployment gate and publishes `build/`. The 
   checkpoint and evaluation flow (defaults to `http://localhost:3100`)
 
 The local Node server health check is available at `/health`. The production synchronization health check is available at `/api/room-sync?health=1`.
+
+Production also runs a secured Vercel Cron heartbeat once per day. The
+`/api/keepalive` function performs minimal reads against Supabase so low-traffic
+periods do not allow the Free Plan project to be classified as inactive. Vercel
+sends the server-only `CRON_SECRET` automatically; direct public requests are
+rejected.
