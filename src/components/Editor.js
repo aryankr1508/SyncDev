@@ -77,6 +77,7 @@ const Editor = ({
     theme,
     fontSize,
     wordWrap,
+    placeholder = 'Start typing your code...',
     autoDetect,
     onCodeChange,
     onCursorChange,
@@ -102,6 +103,7 @@ const Editor = ({
         theme,
         fontSize,
         wordWrap,
+        placeholder,
         readOnly,
     });
     socketRef.current = socket;
@@ -146,7 +148,7 @@ const Editor = ({
             foldGutter: true,
             gutters: ['CodeMirror-linenumbers', 'CodeMirror-foldgutter'],
             showCursorWhenSelecting: true,
-            placeholder: 'Start typing your code...',
+            placeholder: initialOptions.placeholder,
             extraKeys: {
                 'Ctrl-Space': 'autocomplete',
                 'Cmd-Space': 'autocomplete',
@@ -265,6 +267,7 @@ const Editor = ({
         );
         applyEditorThemeSurface(editor, theme);
         editor.setOption('lineWrapping', wordWrap);
+        editor.setOption('placeholder', placeholder);
         editor.setOption('readOnly', readOnly ? 'nocursor' : false);
         editor.getWrapperElement().style.fontSize = `${fontSize}px`;
         editor.refresh();
@@ -274,7 +277,15 @@ const Editor = ({
                 detectLanguage(editor.getValue())
             );
         }
-    }, [autoDetect, fontSize, language, readOnly, theme, wordWrap]);
+    }, [
+        autoDetect,
+        fontSize,
+        language,
+        placeholder,
+        readOnly,
+        theme,
+        wordWrap,
+    ]);
 
     useEffect(() => {
         if (!socket) {

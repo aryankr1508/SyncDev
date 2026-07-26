@@ -18,8 +18,12 @@ const modeUi = {
         selector: 'Interview',
         workspace: 'Interview workspace',
         purpose: 'evaluate problem-solving',
+        mission: 'Candidate signal',
         timeline: 'Attempts',
         tests: 'Evaluation',
+        settings: 'Interview setup',
+        runLabel: 'Run solution',
+        output: 'SOLUTION OUTPUT',
         titlePlaceholder: 'Approach, breakthrough, or final solution',
         notePlaceholder: 'What did the candidate reason about or decide?',
         testPlaceholder: 'Requirement or edge case',
@@ -28,8 +32,12 @@ const modeUi = {
         selector: 'Training',
         workspace: 'Learning workspace',
         purpose: 'teach through practice',
+        mission: 'Learning loop',
         timeline: 'Progress',
         tests: 'Exercises',
+        settings: 'Learning setup',
+        runLabel: 'Try code',
+        output: 'PRACTICE OUTPUT',
         titlePlaceholder: 'Concept or exercise completed',
         notePlaceholder:
             'What did the learner understand or still need help with?',
@@ -39,8 +47,12 @@ const modeUi = {
         selector: 'Debugging',
         workspace: 'Debugging workspace',
         purpose: 'resolve issues systematically',
+        mission: 'Diagnostic loop',
         timeline: 'Investigation',
         tests: 'Verification',
+        settings: 'Debugging setup',
+        runLabel: 'Reproduce',
+        output: 'DIAGNOSTIC OUTPUT',
         titlePlaceholder: 'Symptom, hypothesis, root cause, or fix',
         notePlaceholder:
             'What evidence supports this finding or decision?',
@@ -229,6 +241,19 @@ const run = async () => {
                 node.click();
                 return true;
             })()`);
+        const clickLabel = (label) =>
+            evaluate(`(() => {
+                const node = Array.from(
+                    document.querySelectorAll('button[aria-label]')
+                ).find(
+                    (entry) =>
+                        entry.getAttribute('aria-label') ===
+                        ${JSON.stringify(label)}
+                );
+                if (!node) return false;
+                node.click();
+                return true;
+            })()`);
         const setValue = (placeholder, value) =>
             evaluate(`(() => {
                 const node = Array.from(document.querySelectorAll('input, textarea')).find(
@@ -280,9 +305,22 @@ const run = async () => {
             `document.body.innerText.includes(${JSON.stringify(
                 modeUi.workspace
             )}) &&
+             document.body.innerText.includes(${JSON.stringify(
+                 modeUi.runLabel
+             )}) &&
+             document.body.innerText.toLowerCase().includes(${JSON.stringify(
+                 modeUi.mission.toLowerCase()
+             )}) &&
              document.body.innerText.includes('host')`
         );
 
+        await clickLabel(`Open ${modeUi.settings}`);
+        await waitFor(
+            `document.body.innerText.toLowerCase().includes(${JSON.stringify(
+                modeUi.settings.toLowerCase()
+            )}) &&
+             document.body.innerText.toLowerCase().includes('session mode')`
+        );
         await clickText(modeUi.timeline);
         await waitFor(
             `document.body.innerText.toLowerCase().includes(${JSON.stringify(
@@ -327,7 +365,10 @@ const run = async () => {
         })()`);
         await clickText('Run suite');
         await waitFor(
-            `document.body.innerText.includes('1/1 tests passed')`,
+            `document.body.innerText.includes('1/1 tests passed') &&
+             document.body.innerText.includes(${JSON.stringify(
+                 modeUi.output
+             )})`,
             15000
         );
         await clickText(modeUi.timeline, 'aside button');
@@ -346,6 +387,8 @@ const run = async () => {
                 verified: [
                     'private room creation',
                     `${mode} guided workflow`,
+                    'separate activity and settings controls',
+                    'mode-specific workspace and execution language',
                     'host role',
                     'lab notebook drawer',
                     'checkpoint creation',

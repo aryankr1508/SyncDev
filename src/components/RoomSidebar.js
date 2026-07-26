@@ -1,7 +1,13 @@
 import React from 'react';
+import { getModeExperience } from '../session/modes';
 import BrandLogo from './ui/BrandLogo';
 import Client from './Client';
-import { ActivityIcon, CopyIcon, ExitIcon } from './ui/Icons';
+import {
+    ActivityIcon,
+    CopyIcon,
+    ExitIcon,
+    ModeIcon,
+} from './ui/Icons';
 
 const statusDetails = {
     connected: {
@@ -25,12 +31,14 @@ const RoomSidebar = ({
     clients,
     socketId,
     status,
+    mode = 'interview',
     currentRole,
     onRoleChange,
     onCopyRoom,
     onLeave,
 }) => {
     const connection = statusDetails[status];
+    const experience = getModeExperience(mode);
 
     return (
         <aside className="relative z-20 flex min-h-[650px] flex-col overflow-hidden rounded-[20px] border border-slate-200/90 bg-white/95 px-4 py-5 text-slate-800 backdrop-blur-xl transition-colors duration-300 dark:border-[#1b2741] dark:bg-[#061024]/95 dark:text-white lg:h-full lg:px-5">
@@ -38,7 +46,27 @@ const RoomSidebar = ({
 
             <BrandLogo className="relative mx-auto my-1 w-[230px]" />
 
-            <div className="relative mt-5 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-[#293550] dark:bg-[#0b132a] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]">
+            <div
+                data-mode={mode}
+                className="mode-sidebar-card relative mt-4 flex items-center gap-3 overflow-hidden rounded-xl border p-3"
+            >
+                <span className="mode-guide-icon relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl">
+                    <ModeIcon
+                        icon={experience.icon}
+                        className="h-5 w-5"
+                    />
+                </span>
+                <span className="relative min-w-0">
+                    <strong className="block truncate text-[11px] text-slate-800 dark:text-white">
+                        {experience.shortLabel} room
+                    </strong>
+                    <span className="mt-0.5 block truncate text-[9px] text-slate-500 dark:text-[#8c95aa]">
+                        {experience.workspaceGoal}
+                    </span>
+                </span>
+            </div>
+
+            <div className="relative mt-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-[#293550] dark:bg-[#0b132a] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]">
                 <div className="flex items-center gap-2.5 text-[12px] font-bold uppercase tracking-wide text-slate-800 dark:text-white">
                     <span className={`h-3 w-3 rounded-full ${connection.dot}`} />
                     {connection.label}

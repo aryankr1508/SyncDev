@@ -1,7 +1,12 @@
 import React, { useMemo, useState } from 'react';
 import { getModeExperience } from '../session/modes';
 import { createSessionReport } from '../utils/sessionReport';
-import { PlayIcon, PlusIcon } from './ui/Icons';
+import {
+    ModeIcon,
+    PlayIcon,
+    PlusIcon,
+    SettingsIcon,
+} from './ui/Icons';
 
 const tabClass = (active) =>
     `rounded-lg px-3 py-2 text-[11px] font-bold transition ${
@@ -474,27 +479,30 @@ const TestsTab = ({
     );
 };
 
-const ControlsTab = ({
-    roomId,
+const SettingsTab = ({
     session,
-    clients,
     currentRole,
     experience,
     onSettings,
-    onExport,
 }) => {
-    const report = useMemo(
-        () => createSessionReport({ roomId, session, clients }),
-        [clients, roomId, session]
-    );
     const isHost = currentRole === 'host';
 
     return (
         <div className="space-y-4">
-            <section className="rounded-xl border border-slate-200 p-3 dark:border-[#29344e]">
-                <h3 className="text-xs font-bold text-slate-800 dark:text-white">
-                    Room governance
-                </h3>
+            <section className="mode-surface rounded-xl border p-3">
+                <div className="flex items-center gap-3">
+                    <span className="mode-guide-icon flex h-9 w-9 items-center justify-center rounded-lg">
+                        <SettingsIcon className="h-4 w-4" />
+                    </span>
+                    <div>
+                        <h3 className="text-xs font-bold text-slate-800 dark:text-white">
+                            {experience.settingsTitle}
+                        </h3>
+                        <p className="mt-0.5 text-[10px] text-slate-500 dark:text-[#818aa2]">
+                            Configure the room purpose and who can edit.
+                        </p>
+                    </div>
+                </div>
                 <div className="mt-3 grid gap-3">
                     <label className="text-[10px] font-bold uppercase tracking-wide text-slate-500">
                         Session mode
@@ -532,11 +540,28 @@ const ControlsTab = ({
                 </div>
                 {!isHost && (
                     <p className="mt-3 text-[10px] text-slate-400">
-                        Only the host can change room governance.
+                        Only the host can change these room settings.
                     </p>
                 )}
             </section>
+        </div>
+    );
+};
 
+const ReportTab = ({
+    roomId,
+    session,
+    clients,
+    experience,
+    onExport,
+}) => {
+    const report = useMemo(
+        () => createSessionReport({ roomId, session, clients }),
+        [clients, roomId, session]
+    );
+
+    return (
+        <div className="space-y-4">
             <section className="rounded-xl border border-slate-200 p-3 dark:border-[#29344e]">
                 <div className="flex items-center justify-between gap-3">
                     <div>
@@ -565,6 +590,8 @@ const ControlsTab = ({
 
 const SessionLabPanel = ({
     open,
+    activeTab = 'timeline',
+    onTabChange,
     onClose,
     roomId,
     session,
@@ -579,7 +606,6 @@ const SessionLabPanel = ({
     onSettings,
     onExport,
 }) => {
-    const [tab, setTab] = useState('timeline');
     const experience = getModeExperience(session.mode);
     if (!open) return null;
 
@@ -587,23 +613,33 @@ const SessionLabPanel = ({
         <aside className="absolute inset-y-0 right-0 z-50 flex w-full max-w-[410px] flex-col border-l border-slate-200 bg-white/98 shadow-[-24px_0_70px_rgba(30,45,70,0.18)] backdrop-blur-xl dark:border-[#26314a] dark:bg-[#070d1f]/98 dark:shadow-[-28px_0_80px_rgba(0,0,0,0.48)]">
             <header className="border-b border-slate-200 px-4 py-4 dark:border-[#26314a]">
                 <div className="flex items-start justify-between gap-3">
-                    <div>
-                        <p className="mode-accent-text text-[9px] font-bold uppercase tracking-[0.2em]">
-                            {experience.purpose}
-                        </p>
-                        <h2 className="mt-1 text-lg font-extrabold text-slate-900 dark:text-white">
-                            Session evidence
-                        </h2>
-                        <div className="mt-2 flex flex-wrap items-center gap-2 text-[9px] font-bold uppercase tracking-wide">
-                            <span className="mode-chip rounded-full px-2 py-1">
-                                {session.mode}
-                            </span>
-                            <span className="rounded-full bg-slate-100 px-2 py-1 text-slate-500 dark:bg-white/5 dark:text-[#9aa3b8]">
-                                {currentRole}
-                            </span>
-                            <span className="font-mono normal-case text-slate-400">
-                                rev {shortRevision(session.revision)}
-                            </span>
+                    <div className="flex min-w-0 items-start gap-3">
+                        <span className="mode-guide-icon mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl">
+                            <ModeIcon
+                                icon={experience.icon}
+                                className="h-5 w-5"
+                            />
+                        </span>
+                        <div className="min-w-0">
+                            <p className="mode-accent-text text-[9px] font-bold uppercase tracking-[0.2em]">
+                                {experience.purpose}
+                            </p>
+                            <h2 className="mt-1 text-lg font-extrabold text-slate-900 dark:text-white">
+                                {activeTab === 'settings'
+                                    ? experience.settingsTitle
+                                    : experience.panelTitle}
+                            </h2>
+                            <div className="mt-2 flex flex-wrap items-center gap-2 text-[9px] font-bold uppercase tracking-wide">
+                                <span className="mode-chip rounded-full px-2 py-1">
+                                    {session.mode}
+                                </span>
+                                <span className="rounded-full bg-slate-100 px-2 py-1 text-slate-500 dark:bg-white/5 dark:text-[#9aa3b8]">
+                                    {currentRole}
+                                </span>
+                                <span className="font-mono normal-case text-slate-400">
+                                    rev {shortRevision(session.revision)}
+                                </span>
+                            </div>
                         </div>
                     </div>
                     <button
@@ -635,33 +671,44 @@ const SessionLabPanel = ({
                     </ol>
                 </div>
 
-                <nav className="mt-4 grid grid-cols-3 gap-1 rounded-xl bg-slate-100 p-1 dark:bg-white/[0.035]">
+                <nav className="mt-4 grid grid-cols-[1fr_1fr_1fr_42px] gap-1 rounded-xl bg-slate-100 p-1 dark:bg-white/[0.035]">
                     <button
                         type="button"
-                        className={tabClass(tab === 'timeline')}
-                        onClick={() => setTab('timeline')}
+                        className={tabClass(activeTab === 'timeline')}
+                        onClick={() => onTabChange('timeline')}
                     >
                         {experience.timelineTab}
                     </button>
                     <button
                         type="button"
-                        className={tabClass(tab === 'tests')}
-                        onClick={() => setTab('tests')}
+                        className={tabClass(activeTab === 'tests')}
+                        onClick={() => onTabChange('tests')}
                     >
                         {experience.testsTab}
                     </button>
                     <button
                         type="button"
-                        className={tabClass(tab === 'controls')}
-                        onClick={() => setTab('controls')}
+                        className={tabClass(activeTab === 'report')}
+                        onClick={() => onTabChange('report')}
                     >
                         {experience.reportTab}
+                    </button>
+                    <button
+                        type="button"
+                        className={`${tabClass(
+                            activeTab === 'settings'
+                        )} flex items-center justify-center px-0`}
+                        onClick={() => onTabChange('settings')}
+                        aria-label={`Open ${experience.settingsTitle}`}
+                        title={experience.settingsTitle}
+                    >
+                        <SettingsIcon className="h-4 w-4" />
                     </button>
                 </nav>
             </header>
 
             <div className="min-h-0 flex-1 overflow-y-auto p-4">
-                {tab === 'timeline' && (
+                {activeTab === 'timeline' && (
                     <TimelineTab
                         events={session.events || []}
                         currentRole={currentRole}
@@ -670,7 +717,7 @@ const SessionLabPanel = ({
                         onRestore={onRestore}
                     />
                 )}
-                {tab === 'tests' && (
+                {activeTab === 'tests' && (
                     <TestsTab
                         tests={session.tests || []}
                         hiddenTestCount={session.hiddenTestCount || 0}
@@ -682,15 +729,21 @@ const SessionLabPanel = ({
                         onRunTests={onRunTests}
                     />
                 )}
-                {tab === 'controls' && (
-                    <ControlsTab
+                {activeTab === 'report' && (
+                    <ReportTab
                         roomId={roomId}
                         session={session}
                         clients={clients}
+                        experience={experience}
+                        onExport={onExport}
+                    />
+                )}
+                {activeTab === 'settings' && (
+                    <SettingsTab
+                        session={session}
                         currentRole={currentRole}
                         experience={experience}
                         onSettings={onSettings}
-                        onExport={onExport}
                     />
                 )}
             </div>

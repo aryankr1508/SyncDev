@@ -6,6 +6,7 @@ import ThemeToggle from '../components/ui/ThemeToggle';
 import {
     ArrowRightIcon,
     CopyIcon,
+    ModeIcon,
     PlusIcon,
     UserIcon,
 } from '../components/ui/Icons';
@@ -210,16 +211,26 @@ const Home = () => {
                                                 }
                                                 className="mode-theme mode-choice rounded-xl border border-slate-200 bg-slate-50/80 px-2 py-2.5 text-left transition duration-200 dark:border-[#343a55] dark:bg-[#0d1126]/80"
                                             >
-                                                <span
-                                                    className={`block text-[11px] font-extrabold ${
+                                                <span className="mb-2 flex items-center gap-2">
+                                                    <span className="mode-guide-icon flex h-7 w-7 shrink-0 items-center justify-center rounded-lg">
+                                                        <ModeIcon
+                                                            icon={
+                                                                experience.icon
+                                                            }
+                                                            className="h-4 w-4"
+                                                        />
+                                                    </span>
+                                                    <span
+                                                        className={`block text-[11px] font-extrabold ${
                                                         selected
                                                             ? 'mode-accent-text'
                                                             : 'text-slate-700 dark:text-slate-200'
                                                     }`}
-                                                >
-                                                    {experience.shortLabel}
+                                                    >
+                                                        {experience.shortLabel}
+                                                    </span>
                                                 </span>
-                                                <span className="mt-0.5 block text-[9px] leading-3 text-slate-400">
+                                                <span className="block text-[9px] leading-3 text-slate-400">
                                                     {experience.purpose}
                                                 </span>
                                             </button>

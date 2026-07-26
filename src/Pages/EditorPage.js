@@ -15,7 +15,10 @@ import {
 } from '../editor/themes';
 import { useEditorPreferences } from '../hooks/useEditorPreferences';
 import { useRoomSocket } from '../hooks/useRoomSocket';
-import { getModeThemeStyle } from '../session/modes';
+import {
+    getModeExperience,
+    getModeThemeStyle,
+} from '../session/modes';
 import { useAppTheme } from '../theme/AppThemeContext';
 import { copyText } from '../utils/clipboard';
 import {
@@ -52,9 +55,13 @@ const EditorPage = () => {
     const [detectedLanguage, setDetectedLanguage] = useState('javascript');
     const [cursor, setCursor] = useState({ line: 1, column: 1, selected: 0 });
     const [source, setSource] = useState('');
-    const [sessionOpen, setSessionOpen] = useState(false);
+    const [sessionPanel, setSessionPanel] = useState({
+        open: false,
+        tab: 'timeline',
+    });
     const execution = useCodeExecution();
     const currentRole = session.currentUserRole || 'participant';
+    const experience = getModeExperience(session.mode);
     const isReadOnly =
         currentRole === 'observer' ||
         (session.editPolicy === 'host-only' && currentRole !== 'host');
@@ -80,6 +87,13 @@ const EditorPage = () => {
             appTheme === 'light' && editorTheme.appearance === 'dark'
                 ? '0 18px 45px rgba(15, 23, 42, 0.16)'
                 : '0 10px 30px rgba(30, 55, 80, 0.07)',
+    };
+
+    const toggleSessionPanel = (tab) => {
+        setSessionPanel((current) => ({
+            tab,
+            open: !(current.open && current.tab === tab),
+        }));
     };
 
     const copyRoomId = async () => {
@@ -216,6 +230,7 @@ const EditorPage = () => {
                     clients={clients}
                     socketId={socket?.id}
                     status={status}
+                    mode={session.mode}
                     currentRole={currentRole}
                     onRoleChange={(targetClientId, role) =>
                         sendCommand({
@@ -231,9 +246,13 @@ const EditorPage = () => {
                 <section className={`relative flex min-w-0 flex-col rounded-[20px] border border-white/80 bg-white/90 shadow-[0_22px_70px_rgba(52,72,98,0.1)] backdrop-blur-xl transition-colors duration-300 dark:border-[#1b243c] dark:bg-[#070c1e] dark:shadow-none ${preferences.editorHeight ? 'overflow-y-auto' : 'overflow-hidden'}`}>
                     <div className="workspace-mode-glow pointer-events-none absolute inset-0" />
                     <WorkspaceHeader
-                        sessionOpen={sessionOpen}
-                        onToggleSession={() =>
-                            setSessionOpen((current) => !current)
+                        sessionOpen={sessionPanel.open}
+                        activeSessionTab={sessionPanel.tab}
+                        onOpenTimeline={() =>
+                            toggleSessionPanel('timeline')
+                        }
+                        onOpenSettings={() =>
+                            toggleSessionPanel('settings')
                         }
                         eventCount={session.events.length}
                         currentRole={currentRole}
@@ -253,6 +272,7 @@ const EditorPage = () => {
                             theme={resolvedEditorTheme}
                             fontSize={preferences.fontSize}
                             wordWrap={preferences.wordWrap}
+                            placeholder={experience.editorPlaceholder}
                             autoDetect={languageChoice === 'auto'}
                             onCodeChange={(code) => {
                                 codeRef.current = code;
@@ -312,6 +332,8 @@ const EditorPage = () => {
                         onShowOutput={() => execution.dispatch({ type: 'OPEN', value: true })}
                         isRunning={execution.state.status === 'running'}
                         canRun={!isReadOnly}
+                        runLabel={experience.runLabel}
+                        runningLabel={experience.runningLabel}
                     />
 
                     <OutputPanel
@@ -320,11 +342,22 @@ const EditorPage = () => {
                         onStop={execution.stop}
                         onCopy={() => toast.success('Output copied')}
                         canRun={!isReadOnly}
+                        title={experience.outputTitle}
+                        runLabel={experience.runLabel}
                     />
 
                     <SessionLabPanel
-                        open={sessionOpen}
-                        onClose={() => setSessionOpen(false)}
+                        open={sessionPanel.open}
+                        activeTab={sessionPanel.tab}
+                        onTabChange={(tab) =>
+                            setSessionPanel({ open: true, tab })
+                        }
+                        onClose={() =>
+                            setSessionPanel((current) => ({
+                                ...current,
+                                open: false,
+                            }))
+                        }
                         roomId={roomId}
                         session={session}
                         clients={clients}

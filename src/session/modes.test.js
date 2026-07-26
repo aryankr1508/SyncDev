@@ -16,11 +16,22 @@ test('defines a distinct guided workflow for every supported room mode', () => {
         expect(MODE_EXPERIENCES[mode].description).toBeTruthy();
         expect(MODE_EXPERIENCES[mode].checkpointAction).toBeTruthy();
         expect(MODE_EXPERIENCES[mode].reportTitle).toBeTruthy();
+        expect(MODE_EXPERIENCES[mode].missionPrompt).toBeTruthy();
+        expect(MODE_EXPERIENCES[mode].focusPoints).toHaveLength(3);
+        expect(MODE_EXPERIENCES[mode].editorPlaceholder).toBeTruthy();
+        expect(MODE_EXPERIENCES[mode].runLabel).toBeTruthy();
+        expect(MODE_EXPERIENCES[mode].outputTitle).toBeTruthy();
         expect(MODE_EXPERIENCES[mode].accent).toMatch(/^#/);
     });
 
     expect(
         new Set(MODE_IDS.map((mode) => MODE_EXPERIENCES[mode].accent)).size
+    ).toBe(3);
+    expect(
+        new Set(MODE_IDS.map((mode) => MODE_EXPERIENCES[mode].motif)).size
+    ).toBe(3);
+    expect(
+        new Set(MODE_IDS.map((mode) => MODE_EXPERIENCES[mode].runLabel)).size
     ).toBe(3);
 });
 

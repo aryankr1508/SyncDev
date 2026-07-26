@@ -4,7 +4,15 @@ import VerticalResizeHandle from './ui/VerticalResizeHandle';
 
 const labels = { idle: 'Ready', running: 'Running', success: 'Completed', error: 'Failed', timeout: 'Timed out', cancelled: 'Cancelled' };
 
-const OutputPanel = ({ execution, onStop, onRun, onCopy, canRun = true }) => {
+const OutputPanel = ({
+    execution,
+    onStop,
+    onRun,
+    onCopy,
+    canRun = true,
+    title = 'OUTPUT',
+    runLabel = 'Run',
+}) => {
     const { state, dispatch } = execution;
     const panelRef = useRef(null);
     if (!state.isOpen) return null;
@@ -19,9 +27,9 @@ const OutputPanel = ({ execution, onStop, onRun, onCopy, canRun = true }) => {
             onResize={(height) => dispatch({ type: 'HEIGHT', value: height })}
         />
         <header className="flex min-h-[46px] flex-wrap items-center gap-1.5 border-b border-slate-200 px-3 py-1 dark:border-[#293149] sm:gap-2">
-            <strong className="text-xs text-slate-800 dark:text-slate-100">OUTPUT</strong><span className={`rounded px-2 py-1 text-[10px] font-bold ${state.status === 'success' ? 'bg-emerald-500/10 text-emerald-600' : state.status === 'running' ? 'bg-amber-400/15 text-amber-600' : state.status === 'idle' ? 'text-slate-500' : 'bg-red-500/10 text-red-600'}`}>{labels[state.status]}</span>
+            <strong className="mode-accent-text text-xs">{title}</strong><span className={`rounded px-2 py-1 text-[10px] font-bold ${state.status === 'success' ? 'bg-emerald-500/10 text-emerald-600' : state.status === 'running' ? 'bg-amber-400/15 text-amber-600' : state.status === 'idle' ? 'text-slate-500' : 'bg-red-500/10 text-red-600'}`}>{labels[state.status]}</span>
             <span className="ml-auto hidden text-[11px] text-slate-500 sm:inline">{state.exitCode !== null && `Exit ${state.exitCode}`} {state.duration !== null && ` · ${state.duration}ms`}</span>
-            <button type="button" onClick={onRun} disabled={state.status === 'running' || !canRun} className="rounded px-2 py-1 text-xs font-bold text-sync hover:bg-sync/10 disabled:opacity-50">Run</button>
+            <button type="button" onClick={onRun} disabled={state.status === 'running' || !canRun} className="mode-accent-text rounded px-2 py-1 text-xs font-bold hover:bg-sync/10 disabled:opacity-50">{runLabel}</button>
             <button type="button" onClick={onStop} disabled={state.status !== 'running'} className="rounded px-2 py-1 text-xs font-bold text-red-500 hover:bg-red-500/10 disabled:opacity-50">Stop</button>
             <button type="button" onClick={() => dispatch({ type: 'CLEAR' })} className="rounded px-2 py-1 text-xs hover:bg-slate-200 dark:hover:bg-white/10">Clear</button>
             <button type="button" onClick={copy} className="rounded px-2 py-1 text-xs hover:bg-slate-200 dark:hover:bg-white/10">Copy</button>
