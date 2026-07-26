@@ -6,7 +6,7 @@ const {
 const examples = {
     java: {
         source:
-            'import java.util.Scanner; public class Main { public static void main(String[] args) { Scanner input = new Scanner(System.in); System.out.println("Java " + (input.nextInt() + 2)); } }',
+            'import java.util.*; public class Main { public static void main(String[] args) { Scanner input = new Scanner(System.in); List<Integer> values = new ArrayList<>(); values.add(input.nextInt()); System.out.println("Java " + (values.get(0) + 2)); } }',
         stdin: '40\n',
         expected: 'Java 42',
     },
@@ -23,7 +23,7 @@ const examples = {
     },
     cpp: {
         source:
-            '#include <iostream>\nint main() { int value; std::cin >> value; std::cout << "C++ " << value + 2 << "\\n"; }',
+            '#include <bits/stdc++.h>\nusing namespace std;\nint main() { int value; cin >> value; vector<int> values{value}; cout << "C++ " << values[0] + 2 << "\\n"; }',
         stdin: '40\n',
         expected: 'C++ 42',
     },

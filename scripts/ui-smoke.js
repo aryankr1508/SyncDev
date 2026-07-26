@@ -19,7 +19,21 @@ const executionCase = {
     java: {
         label: 'Java',
         source:
-            'import java.util.Scanner;\npublic class Main {\n  public static void main(String[] args) {\n    Scanner input = new Scanner(System.in);\n    System.out.println(input.nextInt() + 1);\n  }\n}',
+            'import java.util.*;\npublic class Main {\n  public static void main(String[] args) {\n    Scanner input = new Scanner(System.in);\n    List<Integer> values = new ArrayList<>();\n    values.add(input.nextInt());\n    System.out.println(values.get(0) + 1);\n  }\n}',
+    },
+    python: {
+        label: 'Python',
+        source: 'value = int(input())\nprint(value + 1)',
+    },
+    c: {
+        label: 'C',
+        source:
+            '#include <stdio.h>\nint main(void) {\n  int value;\n  scanf("%d", &value);\n  printf("%d\\n", value + 1);\n  return 0;\n}',
+    },
+    cpp: {
+        label: 'C++',
+        source:
+            '#include <bits/stdc++.h>\nusing namespace std;\nint main() {\n  int value;\n  cin >> value;\n  vector<int> values{value};\n  cout << values[0] + 1 << "\\n";\n}',
     },
     sql: {
         label: 'SQL',

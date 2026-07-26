@@ -248,9 +248,6 @@ const EditorPage = () => {
                     <WorkspaceHeader
                         sessionOpen={sessionPanel.open}
                         activeSessionTab={sessionPanel.tab}
-                        onOpenTimeline={() =>
-                            toggleSessionPanel('timeline')
-                        }
                         onOpenSettings={() =>
                             toggleSessionPanel('settings')
                         }

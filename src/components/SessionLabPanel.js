@@ -610,7 +610,15 @@ const SessionLabPanel = ({
     if (!open) return null;
 
     return (
-        <aside className="absolute inset-y-0 right-0 z-50 flex w-full max-w-[410px] flex-col border-l border-slate-200 bg-white/98 shadow-[-24px_0_70px_rgba(30,45,70,0.18)] backdrop-blur-xl dark:border-[#26314a] dark:bg-[#070d1f]/98 dark:shadow-[-28px_0_80px_rgba(0,0,0,0.48)]">
+        <>
+            <button
+                type="button"
+                aria-label="Close session drawer"
+                tabIndex={-1}
+                className="fixed inset-0 z-40 cursor-default bg-transparent"
+                onClick={onClose}
+            />
+            <aside className="absolute inset-y-0 right-0 z-50 flex w-full max-w-[410px] flex-col border-l border-slate-200 bg-white/98 shadow-[-24px_0_70px_rgba(30,45,70,0.18)] backdrop-blur-xl dark:border-[#26314a] dark:bg-[#070d1f]/98 dark:shadow-[-28px_0_80px_rgba(0,0,0,0.48)]">
             <header className="border-b border-slate-200 px-4 py-4 dark:border-[#26314a]">
                 <div className="flex items-start justify-between gap-3">
                     <div className="flex min-w-0 items-start gap-3">
@@ -747,7 +755,8 @@ const SessionLabPanel = ({
                     />
                 )}
             </div>
-        </aside>
+            </aside>
+        </>
     );
 };
 
