@@ -37,7 +37,7 @@ const run = async () => {
                 '-lc',
                 `${REQUIRED_COMMANDS.map(
                     (command) => `command -v ${command}`
-                ).join(' && ')}`,
+                ).join(' && ')} && python3 -c 'import sqlite3'`,
             ],
             timeoutMs: 15000,
         });

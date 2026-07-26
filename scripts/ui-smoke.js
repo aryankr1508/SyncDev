@@ -21,6 +21,11 @@ const executionCase = {
         source:
             'import java.util.Scanner;\npublic class Main {\n  public static void main(String[] args) {\n    Scanner input = new Scanner(System.in);\n    System.out.println(input.nextInt() + 1);\n  }\n}',
     },
+    sql: {
+        label: 'SQL',
+        source: 'SELECT 42 AS result;',
+        expectedOutput: 'result\n------\n42',
+    },
 }[smokeLanguage];
 if (!executionCase) {
     throw new Error(
@@ -369,7 +374,10 @@ const run = async () => {
         await clickText(modeUi.tests);
         await setValue(modeUi.testPlaceholder, 'Increment visible case');
         await setValue('Standard input', '41');
-        await setValue('Expected output', '42');
+        await setValue(
+            'Expected output',
+            executionCase.expectedOutput || '42'
+        );
         await clickText('Add test');
         await waitFor(
             `document.body.innerText.includes('Increment visible case')`

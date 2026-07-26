@@ -23,6 +23,12 @@ test.each([
     ['CSS', '.card { display: flex; padding: 1rem; color: white; }', 'css'],
     ['JSON', '{"name":"Code Sync","active":true}', 'json'],
     ['SQL', 'SELECT id, name FROM users LEFT JOIN teams ON teams.id = users.team_id', 'sql'],
+    ['SQL expression', 'SELECT 1 AS answer;', 'sql'],
+    [
+        'SQL schema and data',
+        'CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT);\nINSERT INTO users (name) VALUES (\'Aryan\');',
+        'sql',
+    ],
     ['C++', '#include <iostream>\nint main() { std::cout << "Hi"; }', 'cpp'],
     [
         'C',

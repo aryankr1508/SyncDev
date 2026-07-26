@@ -15,11 +15,46 @@ test('rejects oversized execution source before selecting a runner', async () =>
 });
 
 test('reports unsupported languages without executing them', async () => {
-    await expect(startCodeExecution({ language: 'sql', source: 'select 1' }).promise).resolves.toMatchObject({ status: 'error', stderr: expect.stringMatching(/not available/) });
+    await expect(startCodeExecution({ language: 'swift', source: 'print(1)' }).promise).resolves.toMatchObject({ status: 'error', stderr: expect.stringMatching(/not available/) });
 });
 
 test('uses the Vercel execution endpoint by default', () => {
     expect(getRemoteExecutionEndpoint()).toBe('/api/execute');
+});
+
+test('routes SQL through the isolated execution API', async () => {
+    const originalFetch = global.fetch;
+    global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+            Promise.resolve({
+                stdout: 'answer\n------\n42\n',
+                stderr: '',
+                exitCode: 0,
+                status: 'success',
+            }),
+    });
+
+    try {
+        const execution = startCodeExecution({
+            language: 'sql',
+            source: 'SELECT 42 AS answer;',
+        });
+
+        await expect(execution.promise).resolves.toMatchObject({
+            status: 'success',
+            stdout: 'answer\n------\n42\n',
+        });
+        expect(global.fetch).toHaveBeenCalledWith(
+            '/api/execute',
+            expect.objectContaining({
+                method: 'POST',
+                body: expect.stringContaining('"language":"sql"'),
+            })
+        );
+    } finally {
+        global.fetch = originalFetch;
+    }
 });
 
 test('allows a remote execution request to be cancelled', async () => {

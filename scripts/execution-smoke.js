@@ -27,6 +27,12 @@ const examples = {
         stdin: '40\n',
         expected: 'C++ 42',
     },
+    sql: {
+        source:
+            "CREATE TABLE totals (value INTEGER);\nINSERT INTO totals VALUES (40);\nSELECT 'SQL ' || (value + 2) AS result FROM totals;",
+        stdin: '',
+        expected: 'SQL 42',
+    },
 };
 
 const run = async () => {

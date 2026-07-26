@@ -1,5 +1,5 @@
 jest.mock('../../server/sandbox-execution', () => ({
-    EXECUTABLE_LANGUAGES: new Set(['java', 'python', 'c', 'cpp']),
+    EXECUTABLE_LANGUAGES: new Set(['java', 'python', 'c', 'cpp', 'sql']),
     runInVercelSandbox: jest.fn(),
 }));
 
