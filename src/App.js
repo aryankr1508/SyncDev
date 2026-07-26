@@ -2,11 +2,13 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import Home from './Pages/Home';
 import EditorPage from './Pages/EditorPage';
+import useDismissOpenDetails from './hooks/useDismissOpenDetails';
 import { AppThemeProvider, useAppTheme } from './theme/AppThemeContext';
 
 const AppShell = () => {
     const { theme } = useAppTheme();
     const isDark = theme === 'dark';
+    useDismissOpenDetails();
 
     return (
         <div className="min-h-screen bg-slate-100 font-sans text-slate-900 antialiased selection:bg-sync selection:text-[#07141a] dark:bg-canvas dark:text-white">

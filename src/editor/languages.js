@@ -71,6 +71,17 @@ const looksLikeJson = (source) => {
     }
 };
 
+const looksLikeReact = (source) =>
+    /\b(?:import\s+React|from\s+['"]react['"]|require\(\s*['"]react['"]\s*\))/.test(
+        source
+    ) ||
+    /\breturn\s*(?:\(\s*)?</.test(source) ||
+    /(?:=|=>)\s*\(?\s*<[A-Za-z][\w.-]*(?:\s|>)/.test(source) ||
+    /\bclassName\s*=/.test(source) ||
+    /<[A-Z][\w.]*\s*\/>/.test(source) ||
+    /<\/[A-Z][\w.]*\s*>/.test(source) ||
+    /<[A-Z][\w.]*\s+[A-Za-z_:][\w:.-]*\s*=/.test(source);
+
 export const detectLanguage = (code = '') => {
     const source = code.trim();
 
@@ -82,8 +93,7 @@ export const detectLanguage = (code = '') => {
     if (/^<\?php\b/i.test(source)) return 'php';
     if (/^<\?xml\b/i.test(source)) return 'xml';
     if (/^#!.*\b(bash|sh|zsh|fish)\b/m.test(source)) return 'shell';
-    const looksLikeReact = /\b(import\s+React|from\s+['"]react['"]|<[A-Z][\w.]*\b|return\s*\(\s*<|\bclassName=)/.test(source);
-    if (looksLikeReact) {
+    if (looksLikeReact(source)) {
         return /\b(interface|type)\s+[A-Z]\w*|:\s*(?:string|number|boolean)(?:\[\])?/.test(source)
             ? 'tsx'
             : 'jsx';
@@ -128,7 +138,7 @@ export const detectLanguage = (code = '') => {
             [/@(?:Override|Deprecated|SuppressWarnings)\b/g, 3],
         ]),
         cpp: scoreMatches(source, [
-            [/#include\s*[<"](?:iostream|vector|string|map|algorithm|memory|utility)>?/g, 7],
+            [/#include\s*[<"](?:iostream|vector|string|map|algorithm|memory|utility|bits\/stdc\+\+)(?:\.h)?>/g, 7],
             [/\bstd::/g, 5],
             [/\b(?:cout|cin|cerr)\s*(?:<<|>>)/g, 5],
             [/\busing\s+namespace\s+std\b/g, 5],

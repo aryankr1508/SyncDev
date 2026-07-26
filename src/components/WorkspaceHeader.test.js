@@ -6,7 +6,6 @@ const renderHeader = (overrides = {}) => {
     const props = {
         sessionOpen: false,
         activeSessionTab: 'timeline',
-        onOpenTimeline: jest.fn(),
         onOpenSettings: jest.fn(),
         eventCount: 4,
         currentRole: 'host',
@@ -23,12 +22,13 @@ const renderHeader = (overrides = {}) => {
     return props;
 };
 
-test('keeps activity and room settings as separate controls', () => {
+test('keeps activity informational and uses the gear as the settings control', () => {
     const props = renderHeader();
 
-    fireEvent.click(screen.getByRole('button', { name: /attempts 4/i }));
-    expect(props.onOpenTimeline).toHaveBeenCalledTimes(1);
-    expect(props.onOpenSettings).not.toHaveBeenCalled();
+    expect(screen.getByLabelText(/attempts: 4 activity events/i)).toBeInTheDocument();
+    expect(
+        screen.queryByRole('button', { name: /attempts/i })
+    ).not.toBeInTheDocument();
 
     fireEvent.click(
         screen.getByRole('button', { name: /open interview setup/i })

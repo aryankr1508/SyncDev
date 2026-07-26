@@ -19,6 +19,11 @@ test.each([
         'class Solution {\n  public int add(int left, int right) {\n    return left + right;\n  }\n}',
         'java',
     ],
+    [
+        'Java collections are not JSX',
+        'import java.util.*;\npublic class Main {\n  public static void main(String[] args) {\n    List<String> names = new ArrayList<>();\n    names.add("Aryan");\n    System.out.println(names.get(0));\n  }\n}',
+        'java',
+    ],
     ['HTML', '<!doctype html><html><body><main>Hello</main></body></html>', 'html'],
     ['CSS', '.card { display: flex; padding: 1rem; color: white; }', 'css'],
     ['JSON', '{"name":"Code Sync","active":true}', 'json'],
@@ -30,6 +35,11 @@ test.each([
         'sql',
     ],
     ['C++', '#include <iostream>\nint main() { std::cout << "Hi"; }', 'cpp'],
+    [
+        'C++ templates are not JSX',
+        '#include <bits/stdc++.h>\nusing namespace std;\ntemplate<typename T> T twice(T value) { return value + value; }\nint main() { vector<int> values{21}; cout << twice(values[0]); }',
+        'cpp',
+    ],
     [
         'C',
         '#include <stdio.h>\nint main(void) { printf("Hello\\n"); return 0; }',
@@ -46,6 +56,13 @@ test.each([
         'kotlin',
     ],
     ['Go', 'package main\nfunc main() { fmt.Println("Hi") }', 'go'],
+    [
+        'Python comparisons are not JSX',
+        'score = 42\nAverage = 50\nif score < Average:\n    print(score)',
+        'python',
+    ],
+    ['JSX component', 'const app = <Card title="SyncDev" />;', 'jsx'],
+    ['JSX element', 'const app = <main>Hello</main>;', 'jsx'],
     ['TSX', 'interface Props { title: string }\nreturn (<Card title={title} />);', 'tsx'],
     ['Shell', 'export APP_ENV=dev\necho $APP_ENV', 'shell'],
 ])('detects %s', (name, code, expectedLanguage) => {

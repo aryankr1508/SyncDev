@@ -11,15 +11,12 @@ import ThemeToggle from './ui/ThemeToggle';
 const WorkspaceHeader = ({
     sessionOpen,
     activeSessionTab,
-    onOpenTimeline,
     onOpenSettings,
     eventCount = 0,
     currentRole = 'participant',
     mode = 'interview',
 }) => {
     const experience = getModeExperience(mode);
-    const timelineActive =
-        sessionOpen && activeSessionTab === 'timeline';
     const settingsActive =
         sessionOpen && activeSessionTab === 'settings';
 
@@ -46,15 +43,9 @@ const WorkspaceHeader = ({
 
                 <div className="flex items-center gap-2">
                     <div className="flex h-12 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-[#26304a] dark:bg-[#0b1125] dark:shadow-none">
-                        <button
-                            type="button"
-                            onClick={onOpenTimeline}
-                            aria-pressed={timelineActive}
-                            className={`flex items-center gap-2 px-3 text-[11px] font-bold transition sm:px-4 ${
-                                timelineActive
-                                    ? 'mode-action-active'
-                                    : 'text-slate-600 hover:bg-slate-50 dark:text-[#b2b7c8] dark:hover:bg-white/[0.035]'
-                            }`}
+                        <div
+                            className="flex items-center gap-2 px-3 text-[11px] font-bold text-slate-600 dark:text-[#b2b7c8] sm:px-4"
+                            aria-label={`${experience.timelineTab}: ${eventCount} activity events`}
                         >
                             <ActivityIcon className="mode-accent-text h-4 w-8" />
                             <span className="hidden md:inline">
@@ -63,7 +54,7 @@ const WorkspaceHeader = ({
                             <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[9px] dark:bg-white/5">
                                 {eventCount}
                             </span>
-                        </button>
+                        </div>
                         <button
                             type="button"
                             onClick={onOpenSettings}
