@@ -6,11 +6,13 @@ import ThemeToggle from '../components/ui/ThemeToggle';
 import {
     ArrowRightIcon,
     CopyIcon,
+    ModeIcon,
     PlusIcon,
     UserIcon,
 } from '../components/ui/Icons';
 import {
     getModeExperience,
+    getModeThemeStyle,
     MODE_EXPERIENCES,
     MODE_IDS,
 } from '../session/modes';
@@ -85,7 +87,10 @@ const Home = () => {
     };
 
     return (
-        <main className="relative isolate flex min-h-screen items-center justify-center overflow-x-hidden bg-[#f2f6f8] px-4 py-10 transition-colors duration-300 dark:bg-[#070a1b] sm:px-6">
+        <main
+            style={getModeThemeStyle(selectedMode)}
+            className="mode-theme relative isolate flex min-h-screen items-center justify-center overflow-x-hidden bg-[#edf3f8] px-4 py-10 transition-colors duration-300 dark:bg-[#070a1b] sm:px-6"
+        >
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_44%,rgba(64,160,127,0.09),transparent_42%),linear-gradient(145deg,#f7fbfa_0%,#edf3f5_52%,#f5f7fb_100%)] dark:bg-[radial-gradient(circle_at_50%_44%,rgba(40,54,91,0.16),transparent_42%),linear-gradient(145deg,#07101e_0%,#080a1d_52%,#07091a_100%)]" />
             <div className="pointer-events-none absolute -left-32 -top-44 h-[430px] w-[430px] rounded-full bg-[radial-gradient(circle_at_60%_62%,#64e3a8_0%,#16a66d_22%,#0d5b52_44%,#063447_61%,transparent_70%)] opacity-90 blur-[1px] motion-safe:animate-float-slow" />
             <div className="pointer-events-none absolute -bottom-56 -right-36 h-[430px] w-[430px] rounded-full bg-[radial-gradient(circle_at_38%_35%,#62e1a7_0%,#14865d_25%,#0a4b4b_49%,#062838_63%,transparent_71%)] opacity-75 motion-safe:animate-float-slow-reverse" />
@@ -193,6 +198,9 @@ const Home = () => {
                                                 type="button"
                                                 role="radio"
                                                 aria-checked={selected}
+                                                style={getModeThemeStyle(
+                                                    experience
+                                                )}
                                                 onClick={() =>
                                                     setRoomDraft(
                                                         (current) => ({
@@ -201,22 +209,28 @@ const Home = () => {
                                                         })
                                                     )
                                                 }
-                                                className={`rounded-xl border px-2 py-2.5 text-left transition ${
-                                                    selected
-                                                        ? 'border-sync/60 bg-sync/10 shadow-[0_0_0_2px_rgba(74,237,136,0.08)]'
-                                                        : 'border-slate-200 bg-slate-50/80 hover:border-sync/30 dark:border-[#343a55] dark:bg-[#0d1126]/80'
-                                                }`}
+                                                className="mode-theme mode-choice rounded-xl border border-slate-200 bg-slate-50/80 px-2 py-2.5 text-left transition duration-200 dark:border-[#343a55] dark:bg-[#0d1126]/80"
                                             >
-                                                <span
-                                                    className={`block text-[11px] font-extrabold ${
+                                                <span className="mb-2 flex items-center gap-2">
+                                                    <span className="mode-guide-icon flex h-7 w-7 shrink-0 items-center justify-center rounded-lg">
+                                                        <ModeIcon
+                                                            icon={
+                                                                experience.icon
+                                                            }
+                                                            className="h-4 w-4"
+                                                        />
+                                                    </span>
+                                                    <span
+                                                        className={`block text-[11px] font-extrabold ${
                                                         selected
-                                                            ? 'text-emerald-700 dark:text-sync'
+                                                            ? 'mode-accent-text'
                                                             : 'text-slate-700 dark:text-slate-200'
                                                     }`}
-                                                >
-                                                    {experience.shortLabel}
+                                                    >
+                                                        {experience.shortLabel}
+                                                    </span>
                                                 </span>
-                                                <span className="mt-0.5 block text-[9px] leading-3 text-slate-400">
+                                                <span className="block text-[9px] leading-3 text-slate-400">
                                                     {experience.purpose}
                                                 </span>
                                             </button>
@@ -224,7 +238,7 @@ const Home = () => {
                                     })}
                                 </div>
 
-                                <div className="mt-3 rounded-xl border border-sync/20 bg-sync/[0.045] p-3">
+                                <div className="mode-surface mt-3 rounded-xl border p-3">
                                     <div className="flex items-start justify-between gap-3">
                                         <div>
                                             <strong className="text-xs text-slate-800 dark:text-white">
@@ -234,7 +248,7 @@ const Home = () => {
                                                 {selectedMode.description}
                                             </p>
                                         </div>
-                                        <span className="shrink-0 rounded-full bg-sync/10 px-2 py-1 text-[9px] font-bold text-emerald-700 dark:text-sync">
+                                        <span className="mode-chip shrink-0 rounded-full px-2 py-1 text-[9px] font-bold">
                                             Host
                                         </span>
                                     </div>
@@ -245,7 +259,7 @@ const Home = () => {
                                                     key={step}
                                                     className="rounded-lg bg-white/80 px-1.5 py-2 text-center text-[8px] font-bold uppercase tracking-wide text-slate-500 dark:bg-white/[0.04] dark:text-[#a0a8bb]"
                                                 >
-                                                    <span className="mb-1 block text-sync">
+                                                    <span className="mode-accent-text mb-1 block">
                                                         0{index + 1}
                                                     </span>
                                                     {step}

@@ -9,13 +9,21 @@ const chromePath =
     '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const appUrl = process.env.SYNCDEV_UI_URL || 'http://localhost:3100';
 const mode = process.env.SYNCDEV_SMOKE_MODE || 'interview';
+const appTheme = process.env.SYNCDEV_APP_THEME || '';
+if (appTheme && !['light', 'dark'].includes(appTheme)) {
+    throw new Error(`Unsupported smoke-test app theme: ${appTheme}`);
+}
 const modeUi = {
     interview: {
         selector: 'Interview',
         workspace: 'Interview workspace',
         purpose: 'evaluate problem-solving',
+        mission: 'Candidate signal',
         timeline: 'Attempts',
         tests: 'Evaluation',
+        settings: 'Interview setup',
+        runLabel: 'Run solution',
+        output: 'SOLUTION OUTPUT',
         titlePlaceholder: 'Approach, breakthrough, or final solution',
         notePlaceholder: 'What did the candidate reason about or decide?',
         testPlaceholder: 'Requirement or edge case',
@@ -24,8 +32,12 @@ const modeUi = {
         selector: 'Training',
         workspace: 'Learning workspace',
         purpose: 'teach through practice',
+        mission: 'Learning loop',
         timeline: 'Progress',
         tests: 'Exercises',
+        settings: 'Learning setup',
+        runLabel: 'Try code',
+        output: 'PRACTICE OUTPUT',
         titlePlaceholder: 'Concept or exercise completed',
         notePlaceholder:
             'What did the learner understand or still need help with?',
@@ -35,8 +47,12 @@ const modeUi = {
         selector: 'Debugging',
         workspace: 'Debugging workspace',
         purpose: 'resolve issues systematically',
+        mission: 'Diagnostic loop',
         timeline: 'Investigation',
         tests: 'Verification',
+        settings: 'Debugging setup',
+        runLabel: 'Reproduce',
+        output: 'DIAGNOSTIC OUTPUT',
         titlePlaceholder: 'Symptom, hypothesis, root cause, or fix',
         notePlaceholder:
             'What evidence supports this finding or decision?',
@@ -207,7 +223,7 @@ const run = async () => {
                 await delay(120);
             }
             const context = await evaluate(
-                `document.body.innerText.slice(0, 1800)`
+                `document.body?.innerText.slice(0, 1800) || 'Document body is not ready'`
             );
             throw new Error(
                 `UI condition timed out: ${expression}\nRendered text:\n${context}`
@@ -221,6 +237,19 @@ const run = async () => {
                 )})).find((entry) => entry.textContent.trim().includes(${JSON.stringify(
                     text
                 )}));
+                if (!node) return false;
+                node.click();
+                return true;
+            })()`);
+        const clickLabel = (label) =>
+            evaluate(`(() => {
+                const node = Array.from(
+                    document.querySelectorAll('button[aria-label]')
+                ).find(
+                    (entry) =>
+                        entry.getAttribute('aria-label') ===
+                        ${JSON.stringify(label)}
+                );
                 if (!node) return false;
                 node.click();
                 return true;
@@ -245,8 +274,28 @@ const run = async () => {
             })()`);
 
         await waitFor(
-            `document.body.innerText.includes('Create a new room')`
+            `document.body?.innerText.includes('Create a new room') || false`
         );
+        if (appTheme) {
+            const isDark = await evaluate(
+                `document.documentElement.classList.contains('dark')`
+            );
+            if (isDark !== (appTheme === 'dark')) {
+                await evaluate(`(() => {
+                    const toggle = document.querySelector(
+                        'button[aria-label*="application theme"]'
+                    );
+                    if (!toggle) return false;
+                    toggle.click();
+                    return true;
+                })()`);
+                await waitFor(
+                    `document.documentElement.classList.contains('dark') === ${
+                        appTheme === 'dark'
+                    }`
+                );
+            }
+        }
         await clickText('Create a new room');
         if (mode !== 'interview') await clickText(modeUi.selector);
         await setValue('How should we call you?', 'UI Smoke Host');
@@ -256,9 +305,22 @@ const run = async () => {
             `document.body.innerText.includes(${JSON.stringify(
                 modeUi.workspace
             )}) &&
+             document.body.innerText.includes(${JSON.stringify(
+                 modeUi.runLabel
+             )}) &&
+             document.body.innerText.toLowerCase().includes(${JSON.stringify(
+                 modeUi.mission.toLowerCase()
+             )}) &&
              document.body.innerText.includes('host')`
         );
 
+        await clickLabel(`Open ${modeUi.settings}`);
+        await waitFor(
+            `document.body.innerText.toLowerCase().includes(${JSON.stringify(
+                modeUi.settings.toLowerCase()
+            )}) &&
+             document.body.innerText.toLowerCase().includes('session mode')`
+        );
         await clickText(modeUi.timeline);
         await waitFor(
             `document.body.innerText.toLowerCase().includes(${JSON.stringify(
@@ -303,7 +365,10 @@ const run = async () => {
         })()`);
         await clickText('Run suite');
         await waitFor(
-            `document.body.innerText.includes('1/1 tests passed')`,
+            `document.body.innerText.includes('1/1 tests passed') &&
+             document.body.innerText.includes(${JSON.stringify(
+                 modeUi.output
+             )})`,
             15000
         );
         await clickText(modeUi.timeline, 'aside button');
@@ -322,6 +387,8 @@ const run = async () => {
                 verified: [
                     'private room creation',
                     `${mode} guided workflow`,
+                    'separate activity and settings controls',
+                    'mode-specific workspace and execution language',
                     'host role',
                     'lab notebook drawer',
                     'checkpoint creation',

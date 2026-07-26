@@ -88,3 +88,36 @@ export const ActivityIcon = ({ className }) => (
         <path d="M1 12h10l4-8 5 13 6-10 5 7 5-4 5 4 4-9 5 11 4-6h9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
     </Icon>
 );
+
+export const TargetIcon = ({ className }) => (
+    <Icon className={className}>
+        <circle cx="10" cy="10" r="6.5" stroke="currentColor" strokeWidth="1.4" />
+        <circle cx="10" cy="10" r="3.2" stroke="currentColor" strokeWidth="1.4" />
+        <path d="M10 1.5v3M10 15.5v3M1.5 10h3M15.5 10h3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+    </Icon>
+);
+
+export const BookIcon = ({ className }) => (
+    <Icon className={className}>
+        <path d="M3.5 4.5A2.5 2.5 0 0 1 6 2h4v14H6a2.5 2.5 0 0 0-2.5 2V4.5ZM16.5 4.5A2.5 2.5 0 0 0 14 2h-4v14h4a2.5 2.5 0 0 1 2.5 2V4.5Z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
+        <path d="M6 6h2M12 6h2" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+    </Icon>
+);
+
+export const BugIcon = ({ className }) => (
+    <Icon className={className}>
+        <rect x="6" y="5" width="8" height="10" rx="4" stroke="currentColor" strokeWidth="1.4" />
+        <path d="M8 5 6.5 3M12 5l1.5-2M3 8h3M14 8h3M3 12h3M14 12h3M7 16l-1 2M13 16l1 2M10 7v6" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+    </Icon>
+);
+
+const modeIcons = {
+    target: TargetIcon,
+    book: BookIcon,
+    bug: BugIcon,
+};
+
+export const ModeIcon = ({ icon, className }) => {
+    const Component = modeIcons[icon] || TargetIcon;
+    return <Component className={className} />;
+};
