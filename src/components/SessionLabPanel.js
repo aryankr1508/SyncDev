@@ -6,7 +6,7 @@ import { PlayIcon, PlusIcon } from './ui/Icons';
 const tabClass = (active) =>
     `rounded-lg px-3 py-2 text-[11px] font-bold transition ${
         active
-            ? 'bg-sync/10 text-emerald-700 dark:text-sync'
+            ? 'mode-tab-active'
             : 'text-slate-500 hover:bg-slate-100 dark:text-[#8f98af] dark:hover:bg-white/5'
     }`;
 
@@ -97,7 +97,7 @@ const TimelineTab = ({
                     className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 dark:border-[#29344e] dark:bg-white/[0.025]"
                 >
                     <div className="mb-2 flex items-center gap-2">
-                        <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-sync/10 text-sync">
+                        <span className="mode-chip flex h-6 w-6 items-center justify-center rounded-lg">
                             <PlusIcon className="h-3.5 w-3.5" />
                         </span>
                         <strong className="text-xs text-slate-800 dark:text-white">
@@ -188,7 +188,7 @@ const TimelineTab = ({
                             onChange={(event) =>
                                 setSelectedIndex(Number(event.target.value))
                             }
-                            className="mb-3 w-full accent-emerald-500"
+                            className="mb-3 w-full accent-[var(--mode-accent)]"
                             aria-label="Replay session timeline"
                         />
                         <div className="max-h-48 space-y-1.5 overflow-y-auto pr-1">
@@ -207,7 +207,7 @@ const TimelineTab = ({
                                             }
                                             className={`flex w-full items-start gap-2 rounded-lg border px-2.5 py-2 text-left transition ${
                                                 index === resolvedIndex
-                                                    ? 'border-sync/40 bg-sync/[0.07]'
+                                                    ? 'mode-action-active'
                                                     : 'border-transparent hover:border-slate-200 hover:bg-slate-50 dark:hover:border-[#29344e] dark:hover:bg-white/[0.025]'
                                             }`}
                                         >
@@ -588,14 +588,14 @@ const SessionLabPanel = ({
             <header className="border-b border-slate-200 px-4 py-4 dark:border-[#26314a]">
                 <div className="flex items-start justify-between gap-3">
                     <div>
-                        <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-sync">
+                        <p className="mode-accent-text text-[9px] font-bold uppercase tracking-[0.2em]">
                             {experience.purpose}
                         </p>
                         <h2 className="mt-1 text-lg font-extrabold text-slate-900 dark:text-white">
                             Session evidence
                         </h2>
                         <div className="mt-2 flex flex-wrap items-center gap-2 text-[9px] font-bold uppercase tracking-wide">
-                            <span className="rounded-full bg-sync/10 px-2 py-1 text-emerald-700 dark:text-sync">
+                            <span className="mode-chip rounded-full px-2 py-1">
                                 {session.mode}
                             </span>
                             <span className="rounded-full bg-slate-100 px-2 py-1 text-slate-500 dark:bg-white/5 dark:text-[#9aa3b8]">
@@ -616,7 +616,7 @@ const SessionLabPanel = ({
                     </button>
                 </div>
 
-                <div className="mt-4 rounded-xl border border-sync/20 bg-sync/[0.045] p-3">
+                <div className="mode-surface mt-4 rounded-xl border p-3">
                     <p className="text-[10px] leading-4 text-slate-600 dark:text-[#a2aabd]">
                         {experience.description}
                     </p>
@@ -626,7 +626,7 @@ const SessionLabPanel = ({
                                 key={step}
                                 className="rounded-lg bg-white/80 px-1 py-2 text-center text-[8px] font-bold uppercase tracking-wide text-slate-500 dark:bg-white/[0.04] dark:text-[#9da6ba]"
                             >
-                                <span className="mb-1 block text-sync">
+                                <span className="mode-accent-text mb-1 block">
                                     0{index + 1}
                                 </span>
                                 {step}

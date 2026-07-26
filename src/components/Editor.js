@@ -5,6 +5,9 @@ import 'codemirror/theme/dracula.css';
 import 'codemirror/theme/material-darker.css';
 import 'codemirror/theme/monokai.css';
 import 'codemirror/theme/eclipse.css';
+import 'codemirror/theme/idea.css';
+import 'codemirror/theme/neo.css';
+import 'codemirror/theme/solarized.css';
 
 import 'codemirror/mode/javascript/javascript';
 import 'codemirror/mode/jsx/jsx';
@@ -116,9 +119,12 @@ const Editor = ({
         let detectionTimer;
         let hintTimer;
         const initialOptions = initialOptionsRef.current;
+        const initialTheme =
+            EDITOR_THEME_MAP[initialOptions.theme] ||
+            EDITOR_THEME_MAP.dracula;
         const editor = Codemirror.fromTextArea(textareaRef.current, {
             mode: LANGUAGE_MAP[initialOptions.language]?.mode,
-            theme: initialOptions.theme,
+            theme: initialTheme.codeMirrorTheme,
             autoCloseTags: true,
             autoCloseBrackets: {
                 pairs: "()[]{}''\"\"``",
@@ -252,7 +258,11 @@ const Editor = ({
         if (!editor) return;
 
         editor.setOption('mode', LANGUAGE_MAP[language]?.mode);
-        editor.setOption('theme', theme);
+        editor.setOption(
+            'theme',
+            (EDITOR_THEME_MAP[theme] || EDITOR_THEME_MAP.dracula)
+                .codeMirrorTheme
+        );
         applyEditorThemeSurface(editor, theme);
         editor.setOption('lineWrapping', wordWrap);
         editor.setOption('readOnly', readOnly ? 'nocursor' : false);
@@ -298,7 +308,21 @@ const Editor = ({
                 aria-label="Collaborative code editor"
                 defaultValue=""
             />
-            <div className="pointer-events-none absolute inset-y-0 right-0 z-20 w-[116px] border-l border-black/[0.035] bg-white/[0.025] dark:border-white/[0.07] dark:bg-black/[0.03]">
+            <div
+                className="pointer-events-none absolute inset-y-0 right-0 z-20 w-[116px] border-l"
+                style={{
+                    borderColor:
+                        (EDITOR_THEME_MAP[theme] || EDITOR_THEME_MAP.dracula)
+                            .appearance === 'dark'
+                            ? 'rgba(255, 255, 255, 0.07)'
+                            : 'rgba(15, 23, 42, 0.06)',
+                    backgroundColor:
+                        (EDITOR_THEME_MAP[theme] || EDITOR_THEME_MAP.dracula)
+                            .appearance === 'dark'
+                            ? 'rgba(0, 0, 0, 0.035)'
+                            : 'rgba(255, 255, 255, 0.18)',
+                }}
+            >
                 <span
                     className="absolute left-3 right-2 top-5 h-1 rounded-full bg-sync shadow-[0_0_10px_rgba(83,226,156,0.25)]"
                     style={{

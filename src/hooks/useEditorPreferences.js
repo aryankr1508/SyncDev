@@ -1,24 +1,33 @@
 import { useEffect, useReducer } from 'react';
+import {
+    AUTO_EDITOR_THEME,
+    EDITOR_THEME_IDS,
+} from '../editor/themes';
 
-const CACHE_KEY = 'code-sync:editor-preferences:v2';
+const CACHE_KEY = 'code-sync:editor-preferences:v3';
+const LEGACY_CACHE_KEY = 'code-sync:editor-preferences:v2';
 const defaults = {
-    theme: 'dracula',
+    theme: AUTO_EDITOR_THEME,
     fontSize: 16,
     wordWrap: true,
     editorHeight: null,
 };
-const validThemes = new Set([
-    'dracula',
-    'material-darker',
-    'monokai',
-    'eclipse',
-]);
+const validThemes = new Set([AUTO_EDITOR_THEME, ...EDITOR_THEME_IDS]);
 
 const loadPreferences = () => {
     try {
-        const cached = JSON.parse(window.localStorage.getItem(CACHE_KEY));
+        const currentCache = window.localStorage.getItem(CACHE_KEY);
+        const legacyCache = window.localStorage.getItem(LEGACY_CACHE_KEY);
+        const cached = JSON.parse(currentCache || legacyCache);
+        const migratedTheme =
+            !currentCache && cached?.theme === 'dracula'
+                ? AUTO_EDITOR_THEME
+                : cached?.theme;
+
         return {
-            theme: validThemes.has(cached?.theme) ? cached.theme : defaults.theme,
+            theme: validThemes.has(migratedTheme)
+                ? migratedTheme
+                : defaults.theme,
             fontSize: Number.isFinite(cached?.fontSize)
                 ? Math.min(22, Math.max(12, cached.fontSize))
                 : defaults.fontSize,

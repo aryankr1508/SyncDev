@@ -1,6 +1,10 @@
 import React from 'react';
 import { LANGUAGES, LANGUAGE_MAP } from '../editor/languages';
-import { EDITOR_THEMES, EDITOR_THEME_MAP } from '../editor/themes';
+import {
+    AUTO_EDITOR_THEME,
+    EDITOR_THEMES,
+    EDITOR_THEME_MAP,
+} from '../editor/themes';
 import {
     ChevronIcon,
     CodeIcon,
@@ -31,6 +35,8 @@ const EditorStatusBar = ({
     languageChoice,
     detectedLanguage,
     preferences,
+    appTheme,
+    resolvedEditorTheme,
     connectionStatus,
     onLanguageChange,
     onPreferenceChange,
@@ -43,7 +49,18 @@ const EditorStatusBar = ({
         languageChoice === 'auto' ? detectedLanguage : languageChoice;
     const language = LANGUAGE_MAP[effectiveLanguage] || LANGUAGE_MAP.plain;
     const editorTheme =
-        EDITOR_THEME_MAP[preferences.theme] || EDITOR_THEME_MAP.dracula;
+        EDITOR_THEME_MAP[resolvedEditorTheme] || EDITOR_THEME_MAP.dracula;
+    const followsAppTheme = preferences.theme === AUTO_EDITOR_THEME;
+    const themeGroups = [
+        {
+            appearance: appTheme,
+            label: `Recommended for ${appTheme} app`,
+        },
+        {
+            appearance: appTheme === 'dark' ? 'light' : 'dark',
+            label: `${appTheme === 'dark' ? 'Light' : 'Dark'} editor themes`,
+        },
+    ];
 
     const chooseEditorTheme = (event, themeId) => {
         onPreferenceChange({ type: 'SET_THEME', value: themeId });
@@ -56,39 +73,92 @@ const EditorStatusBar = ({
                 <details className="group relative">
                     <summary
                         className={`${controlClass} min-w-[160px] cursor-pointer list-none gap-3 px-4 [&::-webkit-details-marker]:hidden`}
-                        title="Compiler syntax theme"
+                        title="Editor syntax theme"
                     >
                         <span
                             className="h-5 w-5 rounded-full ring-2 ring-black/5 dark:ring-white/10"
                             style={{ backgroundColor: editorTheme.preview }}
                         />
                         <span className="flex-1 text-left text-xs font-semibold">
-                            {editorTheme.label}
+                            {followsAppTheme
+                                ? `Match app · ${editorTheme.label}`
+                                : editorTheme.label}
                         </span>
                         <ChevronIcon className="h-4 w-4 transition group-open:rotate-180" />
                     </summary>
-                    <div className={`${popoverClass} left-0 w-60`}>
+                    <div className={`${popoverClass} left-0 max-h-[min(520px,72vh)] w-72 overflow-y-auto`}>
                         <p className="px-2 pb-2 pt-1 text-[9px] font-bold uppercase tracking-[0.16em] text-slate-400 dark:text-[#7e869f]">
-                            Compiler syntax theme
+                            Editor syntax theme
                         </p>
-                        {EDITOR_THEMES.map((theme) => (
-                            <button
-                                key={theme.id}
-                                type="button"
-                                onClick={(event) => chooseEditorTheme(event, theme.id)}
-                                className={`flex w-full items-center gap-3 rounded-lg px-2 py-2.5 text-left transition ${
-                                    preferences.theme === theme.id
-                                        ? 'bg-sync/10 text-slate-900 dark:text-white'
-                                        : 'text-slate-600 hover:bg-slate-100 dark:text-[#a4aabd] dark:hover:bg-white/5'
-                                }`}
-                            >
-                                <span
-                                    className="h-5 w-5 rounded-full border border-black/10 dark:border-white/10"
-                                    style={{ backgroundColor: theme.preview }}
-                                />
-                                <span className="flex-1 text-xs font-semibold">{theme.label}</span>
-                                {preferences.theme === theme.id && <span className="text-sync">✓</span>}
-                            </button>
+                        <button
+                            type="button"
+                            onClick={(event) =>
+                                chooseEditorTheme(event, AUTO_EDITOR_THEME)
+                            }
+                            className={`mb-2 flex w-full items-center gap-3 rounded-lg border px-2 py-2.5 text-left transition ${
+                                followsAppTheme
+                                    ? 'border-sync/30 bg-sync/10 text-slate-900 dark:text-white'
+                                    : 'border-transparent text-slate-600 hover:bg-slate-100 dark:text-[#a4aabd] dark:hover:bg-white/5'
+                            }`}
+                        >
+                            <span
+                                className="h-5 w-5 rounded-full border border-black/10 dark:border-white/10"
+                                style={{
+                                    background:
+                                        'linear-gradient(135deg,#f8fafc 0 49%,#171b2c 51% 100%)',
+                                }}
+                            />
+                            <span className="min-w-0 flex-1">
+                                <span className="block text-xs font-semibold">
+                                    Match application
+                                </span>
+                                <span className="block truncate text-[9px] font-medium text-slate-400">
+                                    Uses {editorTheme.label} in {appTheme} mode
+                                </span>
+                            </span>
+                            {followsAppTheme && (
+                                <span className="text-sync">✓</span>
+                            )}
+                        </button>
+                        {themeGroups.map((group) => (
+                            <React.Fragment key={group.appearance}>
+                                <p className="px-2 pb-1 pt-2 text-[9px] font-bold uppercase tracking-[0.14em] text-slate-400 dark:text-[#707991]">
+                                    {group.label}
+                                </p>
+                                {EDITOR_THEMES.filter(
+                                    (theme) =>
+                                        theme.appearance === group.appearance
+                                ).map((theme) => (
+                                    <button
+                                        key={theme.id}
+                                        type="button"
+                                        onClick={(event) =>
+                                            chooseEditorTheme(event, theme.id)
+                                        }
+                                        className={`flex w-full items-center gap-3 rounded-lg px-2 py-2.5 text-left transition ${
+                                            preferences.theme === theme.id
+                                                ? 'bg-sync/10 text-slate-900 dark:text-white'
+                                                : 'text-slate-600 hover:bg-slate-100 dark:text-[#a4aabd] dark:hover:bg-white/5'
+                                        }`}
+                                    >
+                                        <span
+                                            className="h-5 w-5 rounded-full border border-black/10 dark:border-white/10"
+                                            style={{
+                                                backgroundColor: theme.preview,
+                                            }}
+                                        />
+                                        <span className="flex-1 text-xs font-semibold">
+                                            {theme.label}
+                                        </span>
+                                        <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[8px] font-bold uppercase text-slate-400 dark:bg-white/5 dark:text-[#7f879c]">
+                                            {theme.appearance}
+                                        </span>
+                                        {preferences.theme === theme.id && (
+                                            <span className="text-sync">✓</span>
+                                        )}
+                                    </button>
+                                ))}
+                            </React.Fragment>
                         ))}
                     </div>
                 </details>

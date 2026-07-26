@@ -1,6 +1,10 @@
 export const MODE_EXPERIENCES = Object.freeze({
     interview: {
         id: 'interview',
+        accent: '#7c3aed',
+        accentDark: '#a78bfa',
+        accentRgb: '124 58 237',
+        accentDarkRgb: '167 139 250',
         shortLabel: 'Interview',
         label: 'Technical interview',
         purpose: 'Evaluate problem-solving',
@@ -33,6 +37,10 @@ export const MODE_EXPERIENCES = Object.freeze({
     },
     training: {
         id: 'training',
+        accent: '#0284c7',
+        accentDark: '#38bdf8',
+        accentRgb: '2 132 199',
+        accentDarkRgb: '56 189 248',
         shortLabel: 'Training',
         label: 'Training session',
         purpose: 'Teach through practice',
@@ -65,6 +73,10 @@ export const MODE_EXPERIENCES = Object.freeze({
     },
     debugging: {
         id: 'debugging',
+        accent: '#e11d48',
+        accentDark: '#fb7185',
+        accentRgb: '225 29 72',
+        accentDarkRgb: '251 113 133',
         shortLabel: 'Debugging',
         label: 'Debugging room',
         purpose: 'Resolve issues systematically',
@@ -101,3 +113,15 @@ export const MODE_IDS = Object.keys(MODE_EXPERIENCES);
 
 export const getModeExperience = (mode) =>
     MODE_EXPERIENCES[mode] || MODE_EXPERIENCES.interview;
+
+export const getModeThemeStyle = (mode) => {
+    const experience =
+        typeof mode === 'string' ? getModeExperience(mode) : mode;
+
+    return {
+        '--mode-accent-light': experience.accent,
+        '--mode-accent-dark': experience.accentDark,
+        '--mode-accent-rgb-light': experience.accentRgb,
+        '--mode-accent-rgb-dark': experience.accentDarkRgb,
+    };
+};

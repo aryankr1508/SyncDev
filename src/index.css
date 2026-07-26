@@ -2,6 +2,117 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+    html {
+        background: #edf3f8;
+    }
+
+    html.dark {
+        background: #020817;
+    }
+
+    body {
+        min-width: 320px;
+        color: #172033;
+        -webkit-font-smoothing: antialiased;
+        text-rendering: optimizeLegibility;
+    }
+}
+
+.mode-theme {
+    --mode-accent: var(--mode-accent-light);
+    --mode-accent-rgb: var(--mode-accent-rgb-light);
+}
+
+.dark .mode-theme {
+    --mode-accent: var(--mode-accent-dark);
+    --mode-accent-rgb: var(--mode-accent-rgb-dark);
+}
+
+.app-workspace-canvas {
+    background-color: #edf3f8;
+    background-image:
+        radial-gradient(
+            circle at 78% 8%,
+            rgb(var(--mode-accent-rgb) / 0.1),
+            transparent 28%
+        ),
+        radial-gradient(circle at 12% 92%, rgb(53 222 130 / 0.08), transparent 25%),
+        linear-gradient(145deg, #f8fbfd 0%, #edf3f8 54%, #f4f7fb 100%);
+}
+
+.dark .app-workspace-canvas {
+    background-color: #020817;
+    background-image:
+        radial-gradient(
+            circle at 78% 8%,
+            rgb(var(--mode-accent-rgb) / 0.1),
+            transparent 28%
+        ),
+        radial-gradient(circle at 12% 92%, rgb(53 222 130 / 0.055), transparent 25%),
+        linear-gradient(145deg, #020817 0%, #04091a 55%, #05081a 100%);
+}
+
+.workspace-mode-glow {
+    background:
+        radial-gradient(
+            circle at 80% 3%,
+            rgb(var(--mode-accent-rgb) / 0.075),
+            transparent 31%
+        ),
+        linear-gradient(180deg, rgb(255 255 255 / 0.5), transparent 24%);
+}
+
+.dark .workspace-mode-glow {
+    background:
+        radial-gradient(
+            circle at 80% 3%,
+            rgb(var(--mode-accent-rgb) / 0.08),
+            transparent 31%
+        ),
+        radial-gradient(circle at 58% 42%, rgb(34 39 77 / 0.16), transparent 44%);
+}
+
+.mode-chip {
+    border: 1px solid rgb(var(--mode-accent-rgb) / 0.18);
+    background: rgb(var(--mode-accent-rgb) / 0.09);
+    color: var(--mode-accent);
+}
+
+.mode-surface {
+    border-color: rgb(var(--mode-accent-rgb) / 0.22) !important;
+    background: rgb(var(--mode-accent-rgb) / 0.055);
+}
+
+.mode-accent-text {
+    color: var(--mode-accent);
+}
+
+.mode-action-active {
+    border-color: rgb(var(--mode-accent-rgb) / 0.4) !important;
+    background: rgb(var(--mode-accent-rgb) / 0.1) !important;
+    color: var(--mode-accent) !important;
+    box-shadow: 0 0 0 3px rgb(var(--mode-accent-rgb) / 0.055);
+}
+
+.mode-tab-active {
+    background: rgb(var(--mode-accent-rgb) / 0.11);
+    color: var(--mode-accent);
+}
+
+.mode-choice[aria-checked='true'] {
+    border-color: rgb(var(--mode-accent-rgb) / 0.55);
+    background: rgb(var(--mode-accent-rgb) / 0.09);
+    box-shadow:
+        0 0 0 2px rgb(var(--mode-accent-rgb) / 0.06),
+        0 8px 24px rgb(var(--mode-accent-rgb) / 0.08);
+    transform: translateY(-1px);
+}
+
+.mode-choice:hover {
+    border-color: rgb(var(--mode-accent-rgb) / 0.34);
+}
+
 html .CodeMirror.CodeMirror {
     background: var(--editor-background) !important;
     transition: background-color 180ms ease;

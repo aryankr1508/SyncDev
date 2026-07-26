@@ -9,6 +9,10 @@ const chromePath =
     '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const appUrl = process.env.SYNCDEV_UI_URL || 'http://localhost:3100';
 const mode = process.env.SYNCDEV_SMOKE_MODE || 'interview';
+const appTheme = process.env.SYNCDEV_APP_THEME || '';
+if (appTheme && !['light', 'dark'].includes(appTheme)) {
+    throw new Error(`Unsupported smoke-test app theme: ${appTheme}`);
+}
 const modeUi = {
     interview: {
         selector: 'Interview',
@@ -207,7 +211,7 @@ const run = async () => {
                 await delay(120);
             }
             const context = await evaluate(
-                `document.body.innerText.slice(0, 1800)`
+                `document.body?.innerText.slice(0, 1800) || 'Document body is not ready'`
             );
             throw new Error(
                 `UI condition timed out: ${expression}\nRendered text:\n${context}`
@@ -245,8 +249,28 @@ const run = async () => {
             })()`);
 
         await waitFor(
-            `document.body.innerText.includes('Create a new room')`
+            `document.body?.innerText.includes('Create a new room') || false`
         );
+        if (appTheme) {
+            const isDark = await evaluate(
+                `document.documentElement.classList.contains('dark')`
+            );
+            if (isDark !== (appTheme === 'dark')) {
+                await evaluate(`(() => {
+                    const toggle = document.querySelector(
+                        'button[aria-label*="application theme"]'
+                    );
+                    if (!toggle) return false;
+                    toggle.click();
+                    return true;
+                })()`);
+                await waitFor(
+                    `document.documentElement.classList.contains('dark') === ${
+                        appTheme === 'dark'
+                    }`
+                );
+            }
+        }
         await clickText('Create a new room');
         if (mode !== 'interview') await clickText(modeUi.selector);
         await setValue('How should we call you?', 'UI Smoke Host');

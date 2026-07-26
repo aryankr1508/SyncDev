@@ -16,7 +16,7 @@ const WorkspaceHeader = ({
         <header className="flex min-h-[112px] shrink-0 items-center justify-between gap-5 px-7 py-5 transition-colors sm:px-9">
             <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                    <span className="rounded-full bg-sync/10 px-2 py-1 text-[9px] font-extrabold uppercase tracking-[0.16em] text-emerald-700 dark:text-sync">
+                    <span className="mode-chip rounded-full px-2 py-1 text-[9px] font-extrabold uppercase tracking-[0.16em]">
                         {experience.shortLabel}
                     </span>
                     <span className="hidden text-[10px] font-semibold text-slate-400 lg:inline">
@@ -38,11 +38,11 @@ const WorkspaceHeader = ({
                     aria-pressed={sessionOpen}
                     className={`flex h-12 items-center gap-2 rounded-xl border px-3 text-[11px] font-bold transition sm:px-4 ${
                         sessionOpen
-                            ? 'border-sync/40 bg-sync/10 text-emerald-700 dark:text-sync'
-                            : 'border-slate-200 bg-white text-slate-600 hover:border-sync/30 dark:border-[#26304a] dark:bg-[#0b1125] dark:text-[#b2b7c8]'
+                            ? 'mode-action-active'
+                            : 'border-slate-200 bg-white text-slate-600 hover:-translate-y-0.5 dark:border-[#26304a] dark:bg-[#0b1125] dark:text-[#b2b7c8]'
                     }`}
                 >
-                    <ActivityIcon className="h-4 w-8 text-sync" />
+                    <ActivityIcon className="mode-accent-text h-4 w-8" />
                     <span className="hidden md:inline">
                         {experience.timelineTab}
                     </span>

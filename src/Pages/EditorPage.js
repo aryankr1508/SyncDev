@@ -9,8 +9,14 @@ import OutputPanel from '../components/OutputPanel';
 import SessionLabPanel from '../components/SessionLabPanel';
 import VerticalResizeHandle from '../components/ui/VerticalResizeHandle';
 import { detectLanguage, LANGUAGE_MAP } from '../editor/languages';
+import {
+    EDITOR_THEME_MAP,
+    resolveEditorTheme,
+} from '../editor/themes';
 import { useEditorPreferences } from '../hooks/useEditorPreferences';
 import { useRoomSocket } from '../hooks/useRoomSocket';
+import { getModeThemeStyle } from '../session/modes';
+import { useAppTheme } from '../theme/AppThemeContext';
 import { copyText } from '../utils/clipboard';
 import {
     forgetRoomUser,
@@ -41,6 +47,7 @@ const EditorPage = () => {
         sendCommand,
     } = useRoomSocket({ roomId, roomSession });
     const [preferences, updatePreferences] = useEditorPreferences();
+    const { theme: appTheme } = useAppTheme();
     const [languageChoice, setLanguageChoice] = useState('auto');
     const [detectedLanguage, setDetectedLanguage] = useState('javascript');
     const [cursor, setCursor] = useState({ line: 1, column: 1, selected: 0 });
@@ -54,6 +61,26 @@ const EditorPage = () => {
 
     const effectiveLanguage =
         languageChoice === 'auto' ? detectedLanguage : languageChoice;
+    const resolvedEditorTheme = resolveEditorTheme(
+        preferences.theme,
+        appTheme
+    );
+    const editorTheme = EDITOR_THEME_MAP[resolvedEditorTheme];
+    const editorFrameStyle = {
+        ...(preferences.editorHeight
+            ? {
+                  flex: '0 0 auto',
+                  height: `${preferences.editorHeight}px`,
+              }
+            : {}),
+        backgroundColor: editorTheme.background,
+        borderColor:
+            editorTheme.appearance === 'dark' ? '#303851' : '#d9e2ec',
+        boxShadow:
+            appTheme === 'light' && editorTheme.appearance === 'dark'
+                ? '0 18px 45px rgba(15, 23, 42, 0.16)'
+                : '0 10px 30px rgba(30, 55, 80, 0.07)',
+    };
 
     const copyRoomId = async () => {
         try {
@@ -180,7 +207,10 @@ const EditorPage = () => {
     }
 
     return (
-        <main className="min-h-screen overflow-x-hidden bg-[#f7f9fb] p-3 transition-colors duration-300 dark:bg-[#020817] sm:p-5">
+        <main
+            style={getModeThemeStyle(session.mode)}
+            className="mode-theme app-workspace-canvas min-h-screen overflow-x-hidden p-3 transition-colors duration-300 sm:p-5"
+        >
             <div className="mx-auto grid min-h-[calc(100vh-24px)] max-w-[1760px] gap-4 lg:h-[calc(100vh-40px)] lg:min-h-[650px] lg:grid-cols-[285px_minmax(0,1fr)]">
                 <RoomSidebar
                     clients={clients}
@@ -198,8 +228,8 @@ const EditorPage = () => {
                     onLeave={leaveRoom}
                 />
 
-                <section className={`relative flex min-w-0 flex-col rounded-[20px] border border-slate-200/90 bg-white transition-colors duration-300 dark:border-[#1b243c] dark:bg-[#070c1e] ${preferences.editorHeight ? 'overflow-y-auto' : 'overflow-hidden'}`}>
-                    <div className="pointer-events-none absolute inset-0 hidden bg-[radial-gradient(circle_at_58%_42%,rgba(34,39,77,0.16),transparent_44%)] dark:block" />
+                <section className={`relative flex min-w-0 flex-col rounded-[20px] border border-white/80 bg-white/90 shadow-[0_22px_70px_rgba(52,72,98,0.1)] backdrop-blur-xl transition-colors duration-300 dark:border-[#1b243c] dark:bg-[#070c1e] dark:shadow-none ${preferences.editorHeight ? 'overflow-y-auto' : 'overflow-hidden'}`}>
+                    <div className="workspace-mode-glow pointer-events-none absolute inset-0" />
                     <WorkspaceHeader
                         sessionOpen={sessionOpen}
                         onToggleSession={() =>
@@ -212,19 +242,15 @@ const EditorPage = () => {
 
                     <div
                         ref={editorFrameRef}
-                        style={preferences.editorHeight
-                            ? {
-                                flex: '0 0 auto',
-                                height: `${preferences.editorHeight}px`,
-                            }
-                            : undefined}
-                        className="relative mx-3 min-h-[440px] flex-1 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[inset_0_1px_0_rgba(255,255,255,0.6)] transition-colors dark:border-[#293149] dark:bg-[#0b1023] dark:shadow-none sm:mx-5 lg:min-h-[160px]"
+                        style={editorFrameStyle}
+                        data-editor-appearance={editorTheme.appearance}
+                        className="relative mx-3 min-h-[440px] flex-1 overflow-hidden rounded-2xl border transition-[background-color,border-color,box-shadow] duration-200 sm:mx-5 lg:min-h-[160px]"
                     >
                         <Editor
                             socket={socket}
                             roomId={roomId}
                             language={effectiveLanguage}
-                            theme={preferences.theme}
+                            theme={resolvedEditorTheme}
                             fontSize={preferences.fontSize}
                             wordWrap={preferences.wordWrap}
                             autoDetect={languageChoice === 'auto'}
@@ -277,6 +303,8 @@ const EditorPage = () => {
                         languageChoice={languageChoice}
                         detectedLanguage={detectedLanguage}
                         preferences={preferences}
+                        appTheme={appTheme}
+                        resolvedEditorTheme={resolvedEditorTheme}
                         connectionStatus={status}
                         onLanguageChange={changeLanguage}
                         onPreferenceChange={updatePreferences}
