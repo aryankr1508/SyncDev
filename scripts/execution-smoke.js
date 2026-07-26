@@ -6,9 +6,9 @@ const {
 const examples = {
     java: {
         source:
-            'import java.util.*; public class Main { public static void main(String[] args) { Scanner input = new Scanner(System.in); List<Integer> values = new ArrayList<>(); values.add(input.nextInt()); System.out.println("Java " + (values.get(0) + 2)); } }',
+            'import java.util.*; public class Main { public static void main(String[] args) { Scanner input = new Scanner(System.in); List<Integer> values = new ArrayList<>(); values.add(input.nextInt()); System.out.println("Java ✓ " + (values.get(0) + 2)); } }',
         stdin: '40\n',
-        expected: 'Java 42',
+        expected: 'Java ✓ 42',
     },
     python: {
         source: 'value = int(input())\nprint(f"Python {value + 2}")',
