@@ -1,15 +1,26 @@
-import { useEffect, useReducer } from 'react';
+import { useCallback, useEffect, useReducer } from 'react';
 import toast from 'react-hot-toast';
 import ACTIONS from '../Actions';
 import { initSocket } from '../socket';
+import { markRoomCreated } from '../utils/roomSession';
 
-const initialState = {
+export const initialRoomState = {
     socket: null,
     clients: [],
     status: 'connecting',
+    session: {
+        revision: '',
+        events: [],
+        tests: [],
+        hiddenTestCount: 0,
+        currentUserRole: 'participant',
+        mode: 'interview',
+        editPolicy: 'everyone',
+        language: 'javascript',
+    },
 };
 
-const roomReducer = (state, action) => {
+export const roomReducer = (state, action) => {
     switch (action.type) {
         case 'SOCKET_READY':
             return { ...state, socket: action.socket };
@@ -26,16 +37,26 @@ const roomReducer = (state, action) => {
                     (client) => client.socketId !== action.socketId
                 ),
             };
+        case 'SESSION_UPDATED':
+            return {
+                ...state,
+                clients: action.session.clients || state.clients,
+                session: {
+                    ...state.session,
+                    ...action.session,
+                },
+            };
         default:
             return state;
     }
 };
 
-export const useRoomSocket = ({ roomId, username }) => {
-    const [state, dispatch] = useReducer(roomReducer, initialState);
+export const useRoomSocket = ({ roomId, roomSession }) => {
+    const [state, dispatch] = useReducer(roomReducer, initialRoomState);
+    const username = roomSession?.username;
 
     useEffect(() => {
-        if (!username) return undefined;
+        if (!username || !roomSession?.clientToken) return undefined;
 
         const socket = initSocket();
         dispatch({ type: 'SOCKET_READY', socket });
@@ -43,11 +64,18 @@ export const useRoomSocket = ({ roomId, username }) => {
         const handleConnect = () => {
             dispatch({ type: 'CONNECTED' });
             toast.dismiss('socket-error');
-            socket.emit(ACTIONS.JOIN, { roomId, username });
+            socket.emit(ACTIONS.JOIN, {
+                roomId,
+                username,
+                clientToken: roomSession.clientToken,
+                hostKey: roomSession.hostKey,
+                createRoom: roomSession.createRoom,
+                mode: roomSession.mode,
+            });
         };
 
         const handleConnectionError = (error) => {
-            console.error('Socket connection error', error);
+            console.error('Room connection error', error);
             dispatch({ type: 'DISCONNECTED' });
             toast.error('Connection lost. Retrying automatically…', {
                 id: 'socket-error',
@@ -72,8 +100,20 @@ export const useRoomSocket = ({ roomId, username }) => {
             if (departedUser) toast(`${departedUser} left the room.`);
         };
 
+        const handleSessionState = (session) => {
+            dispatch({ type: 'SESSION_UPDATED', session });
+            if (
+                roomSession.createRoom &&
+                session.currentUserRole === 'host'
+            ) {
+                markRoomCreated(roomId);
+            }
+        };
+
         const handleRoomError = ({ message }) => {
-            toast.error(message || 'Could not join this room.');
+            toast.error(message || 'Could not join this room.', {
+                id: 'room-error',
+            });
         };
 
         socket.on('connect', handleConnect);
@@ -81,6 +121,7 @@ export const useRoomSocket = ({ roomId, username }) => {
         socket.on('disconnect', handleDisconnect);
         socket.on(ACTIONS.JOINED, handleJoined);
         socket.on(ACTIONS.DISCONNECTED, handleClientLeft);
+        socket.on(ACTIONS.SESSION_STATE, handleSessionState);
         socket.on('room-error', handleRoomError);
         socket.connect();
 
@@ -88,7 +129,14 @@ export const useRoomSocket = ({ roomId, username }) => {
             socket.removeAllListeners();
             socket.disconnect();
         };
-    }, [roomId, username]);
+    }, [roomId, roomSession, username]);
 
-    return state;
+    const sendCommand = useCallback(
+        (command) => {
+            state.socket?.emit(ACTIONS.SESSION_COMMAND, command);
+        },
+        [state.socket]
+    );
+
+    return { ...state, sendCommand };
 };

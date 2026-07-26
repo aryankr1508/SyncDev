@@ -17,7 +17,10 @@ class PollingRoomTransport {
         this.clients = new Map();
         this.roomId = '';
         this.username = '';
+        this.clientToken = '';
+        this.hostKey = '';
         this.lastRevision = '';
+        this.lastStateVersion = '';
         this.failures = 0;
     }
 
@@ -52,15 +55,13 @@ class PollingRoomTransport {
         window.clearInterval(this.heartbeatTimer);
         window.clearTimeout(this.codeTimer);
 
-        if (this.roomId) {
+        if (this.roomId && this.clientToken) {
             fetch(this.endpoint, {
                 method: 'POST',
                 headers: { 'content-type': 'application/json' },
-                body: JSON.stringify({
-                    action: 'leave',
-                    roomId: this.roomId,
-                    clientId: this.id,
-                }),
+                body: JSON.stringify(
+                    this.withCredentials({ action: 'leave' })
+                ),
                 keepalive: true,
             }).catch(() => undefined);
         }
@@ -73,41 +74,66 @@ class PollingRoomTransport {
         if (event === ACTIONS.JOIN) {
             this.join(payload);
         } else if (event === ACTIONS.CODE_CHANGE) {
-            this.scheduleCodeUpdate(payload.code);
+            this.scheduleCodeUpdate(payload);
+        } else if (event === ACTIONS.SESSION_COMMAND) {
+            this.sendCommand(payload);
         }
         return this;
+    }
+
+    withCredentials(body) {
+        return {
+            ...body,
+            roomId: this.roomId,
+            clientId: this.id,
+            clientToken: this.clientToken,
+        };
     }
 
     async request(body) {
         const response = await fetch(this.endpoint, {
             method: 'POST',
             headers: { 'content-type': 'application/json' },
-            body: JSON.stringify(body),
+            body: JSON.stringify(this.withCredentials(body)),
         });
 
         if (!response.ok) {
             const result = await response.json().catch(() => ({}));
-            throw new Error(result.message || `Sync request failed (${response.status})`);
+            const error = new Error(
+                result.message || `Sync request failed (${response.status})`
+            );
+            error.status = response.status;
+            throw error;
         }
         return response.json();
     }
 
-    async join({ roomId, username }) {
+    async join({
+        roomId,
+        username,
+        clientToken,
+        hostKey,
+        createRoom,
+        mode,
+    }) {
         this.roomId = roomId;
         this.username = username;
+        this.clientToken = clientToken;
+        this.hostKey = hostKey || '';
         this.startPolling();
 
         try {
             const state = await this.request({
-                action: 'join',
-                roomId,
+                action: createRoom ? 'create' : 'join',
                 username,
-                clientId: this.id,
+                hostKey: this.hostKey,
+                mode,
             });
             this.applyState(state, username);
             this.failures = 0;
         } catch (error) {
             this.connected = false;
+            this.notify('room-error', { message: error.message });
             this.notify('connect_error', error);
         }
     }
@@ -123,12 +149,21 @@ class PollingRoomTransport {
     }
 
     async poll() {
-        if (!this.roomId || document.hidden) return;
+        if (!this.roomId || !this.clientToken || document.hidden) return;
 
         try {
-            const query = new URLSearchParams({ roomId: this.roomId });
+            const query = new URLSearchParams({
+                roomId: this.roomId,
+                clientId: this.id,
+                clientToken: this.clientToken,
+            });
             const response = await fetch(`${this.endpoint}?${query}`);
-            if (!response.ok) throw new Error(`Sync poll failed (${response.status})`);
+            if (!response.ok) {
+                const body = await response.json().catch(() => ({}));
+                throw new Error(
+                    body.message || `Sync poll failed (${response.status})`
+                );
+            }
             this.applyState(await response.json());
 
             if (!this.connected) {
@@ -146,40 +181,57 @@ class PollingRoomTransport {
     }
 
     async heartbeat() {
-        if (!this.connected || !this.roomId) return;
+        if (!this.connected || !this.roomId || !this.clientToken) return;
         try {
-            await this.request({
-                action: 'heartbeat',
-                roomId: this.roomId,
-                username: this.username,
-                clientId: this.id,
-            });
+            await this.request({ action: 'heartbeat' });
         } catch (error) {
             // Polling owns visible connection-state reporting and retries.
         }
     }
 
-    scheduleCodeUpdate(code) {
+    scheduleCodeUpdate({ code, revision, language }) {
         window.clearTimeout(this.codeTimer);
+        this.lastRevision = revision;
         this.codeTimer = window.setTimeout(async () => {
-            const revision = `${Date.now()}-${this.id}`;
-            this.lastRevision = revision;
             try {
                 await this.request({
                     action: 'code',
-                    roomId: this.roomId,
-                    clientId: this.id,
                     code,
                     revision,
+                    language,
+                    eventId: revision,
                 });
             } catch (error) {
                 this.connected = false;
+                this.notify('room-error', { message: error.message });
                 this.notify('connect_error', error);
             }
         }, CODE_DEBOUNCE);
     }
 
-    applyState({ clients = [], code = '', revision = '', authorId = '' }, joinedUser) {
+    async sendCommand(command) {
+        try {
+            const state = await this.request(command);
+            if (state?.stateVersion) {
+                this.applyState(
+                    state,
+                    undefined,
+                    command.action === 'restore'
+                );
+            }
+        } catch (error) {
+            this.notify('room-error', { message: error.message });
+        }
+    }
+
+    applyState(state = {}, joinedUser, forceCode = false) {
+        const {
+            clients = [],
+            code = '',
+            revision = '',
+            authorId = '',
+            stateVersion = '',
+        } = state;
         const nextClients = new Map(
             clients.map((client) => [client.socketId, client])
         );
@@ -207,7 +259,14 @@ class PollingRoomTransport {
 
         if (revision && revision !== this.lastRevision) {
             this.lastRevision = revision;
-            if (authorId !== this.id) this.notify(ACTIONS.CODE_CHANGE, { code });
+            if (forceCode || authorId !== this.id) {
+                this.notify(ACTIONS.CODE_CHANGE, { code, revision });
+            }
+        }
+
+        if (!stateVersion || stateVersion !== this.lastStateVersion) {
+            this.lastStateVersion = stateVersion;
+            this.notify(ACTIONS.SESSION_STATE, state);
         }
     }
 }

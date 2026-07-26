@@ -1,6 +1,24 @@
-# Code Sync
+# SyncDev
 
-A real-time collaborative code editor built with React, Tailwind CSS, CodeMirror, Vercel Functions, Supabase, and Socket.IO for local development.
+A replayable collaborative engineering room built with React, Tailwind CSS,
+CodeMirror, Vercel Functions, Supabase, and Socket.IO. SyncDev combines a rich
+editor with structured session evidence for interviews, training, and debugging.
+
+## Replayable session features
+
+- Private room creation with unguessable host credentials
+- Host, participant, and observer roles with live permission changes
+- Host-controlled collaborative or host-only editing
+- Revision-linked execution results instead of detached console output
+- Named checkpoints with intent and decision notes
+- A replay slider, event navigation, source snapshots, and host-only restore
+- Visible and hidden evaluation cases with redacted participant views
+- Interview, training, and debugging room modes
+- Downloadable Markdown reports containing participants, checkpoints, runs,
+  decisions, and revision provenance without hidden test data
+- Seven-day room retention with bounded event history
+- The same session protocol on the local Socket.IO and deployed
+  Vercel/Supabase transports
 
 ## Editor features
 
@@ -12,6 +30,9 @@ A real-time collaborative code editor built with React, Tailwind CSS, CodeMirror
 - Dracula, Material Dark, Monokai, and GitHub Light compiler syntax themes
 - Adjustable editor font size, word wrapping, cursor position, and selection status
 - Real-time room synchronization with automatic reconnects
+- Sandboxed JavaScript execution in a Web Worker, JSON/YAML validation, and an
+  isolated-provider contract for server-side languages
+- Sandboxed HTML, CSS, JavaScript, and Markdown previews
 
 ## Run locally
 
@@ -36,7 +57,12 @@ The production command builds the React app and serves the UI and Socket.IO conn
 
 The production app is deployed at [syncdev-editor.vercel.app](https://syncdev-editor.vercel.app). Vercel watches the `master` branch of `aryankr1508/SyncDev`; each push runs `npm run verify` before publishing `build/`. Pull requests run the same validation in GitHub Actions and receive Vercel preview deployments.
 
-Production rooms use the `api/room-sync.js` Vercel Function and the tables defined in `supabase/schema.sql`. Presence is maintained with lightweight heartbeats, code changes are debounced before persistence, stale participants are removed automatically, and empty-room data is deleted. The SPA rewrite in `vercel.json` keeps shared room URLs working when opened directly.
+Production rooms use the `api/room-sync.js` Vercel Function and the tables
+defined in `supabase/schema.sql`. Presence is maintained with lightweight
+heartbeats, code changes are debounced before persistence, stale participants
+are removed automatically, and room evidence is retained for seven days. The
+SPA rewrite in `vercel.json` keeps shared room URLs working when opened
+directly.
 
 Local development and conventional Node deployments use the Socket.IO server. A dedicated socket host can be selected with `REACT_APP_BACKEND_URL`; Vercel production uses `REACT_APP_SYNC_TRANSPORT=vercel`.
 
@@ -64,5 +90,11 @@ Vercel uses `npm run verify` as the deployment gate and publishes `build/`. The 
 - `npm run verify` — run the CI test and production-build gate
 - `npm run server:dev` — run only the socket server with nodemon
 - `npm run start:front` — run only the React development server
+- `npm run smoke:session` — verify two-client Socket.IO roles, sync, evidence,
+  hidden-test filtering, and observer enforcement
+- `npm run smoke:api-session` — verify the production room API contract against
+  a configured Supabase project
+- `npm run smoke:ui` — drive the rendered product through a headless Chrome
+  checkpoint and evaluation flow (defaults to `http://localhost:3100`)
 
 The local Node server health check is available at `/health`. The production synchronization health check is available at `/api/room-sync?health=1`.

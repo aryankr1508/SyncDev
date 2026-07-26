@@ -37,7 +37,9 @@ Production flow:
 2. `src/socket.js` chooses `VercelRoomTransport` in production.
 3. `src/utils/vercelRoomTransport.js` polls `/api/room-sync`, sends heartbeats, debounces code persistence, and exposes a Socket.IO-like event interface to the UI.
 4. `api/room-sync.js` validates requests and persists rooms/presence through `server/supabase-rest.js`.
-5. Supabase stores state in `syncdev_rooms` and `syncdev_room_clients`, created by `supabase/schema.sql`.
+5. Supabase stores state in `syncdev_rooms`, `syncdev_room_clients`,
+   `syncdev_room_events`, and `syncdev_room_tests`, created by the migrations in
+   `supabase/migrations/` and reflected in `supabase/schema.sql`.
 6. `api/execute.js` is the optional server-side proxy for isolated multi-language execution.
 
 Local development uses the Express/Socket.IO server in `server.js`. Keep this path unless local collaborative development is intentionally redesigned.
@@ -52,8 +54,16 @@ Important synchronization timings and limits:
 - Username: 32 characters maximum
 - Client ID: 100 characters maximum
 - Persisted code: 500,000 characters maximum
+- Replay snapshot: 100,000 characters maximum
+- API event response: latest 80 events
+- Database event retention: latest 120 events per room
+- Evaluation cases: 40 maximum per room
+- Room evidence retention: seven days from the latest activity
 
-Empty rooms and stale participants are cleaned automatically. Supabase Row Level Security is enabled and direct `anon`/`authenticated` access is revoked; production access goes through the server-only API function.
+Stale participants are cleaned automatically. Rooms remain available for seven
+days so their evidence can be reviewed or exported. Supabase Row Level Security
+is enabled and direct `anon`/`authenticated` access is revoked; production
+access goes through the server-only API function.
 
 ## Environment inventory
 
@@ -176,13 +186,26 @@ For collaboration changes, also test two independent clients joining the same ro
 
 `GET /api/room-sync?health=1` checks configuration without exposing credentials.
 
-`GET /api/room-sync?roomId=<room>` returns current room state.
+All room requests use `roomId`, `clientId`, and a private `clientToken`.
+Host-only requests additionally depend on the host credential established when
+the room is created. Tokens are hashed before persistence.
+
+`GET /api/room-sync?roomId=<room>&clientId=<client>&clientToken=<token>`
+returns the role-filtered room state.
 
 `POST /api/room-sync` accepts JSON actions:
 
-- `join`: `roomId`, `clientId`, `username`
-- `heartbeat`: `roomId`, `clientId`, `username`
-- `code`: `roomId`, `clientId`, `code`, `revision`
+- `create`: credentials, `username`, `hostKey`, and `mode`
+- `join`: credentials, `username`, and optional `hostKey`
+- `heartbeat`: credentials
+- `code`: credentials, `code`, `revision`, `language`, and `eventId`
+- `checkpoint`: credentials, `title`, `note`, and `eventId`
+- `restore`: host credentials and `eventId`
+- `settings`: host credentials and any of `mode`, `editPolicy`, or `language`
+- `role`: host credentials, `targetClientId`, and `role`
+- `test-upsert`: host credentials and a visible or hidden `test`
+- `test-delete`: host credentials and `testId`
+- `run` / `test-run`: credentials plus revision-linked result metadata
 - `leave`: `roomId`, `clientId`
 
 `POST /api/execute` accepts a provider-neutral execution request with `language`, `source`, `stdin`, `timeout`, and optional `runtime`. It must never execute untrusted code directly inside the application function; use an isolated external compiler provider.
@@ -202,3 +225,8 @@ For collaboration changes, also test two independent clients joining the same ro
 - Remote multi-language execution is intentionally unavailable until an isolated provider is selected and configured.
 - Function and database regions should be kept geographically close when the hosting plan permits it; re-check latency before changing regions.
 - React Router emits version-7 future-flag warnings during tests. They are warnings, not test failures, and should be handled as a deliberate router upgrade rather than suppressed blindly.
+- `npm audit --omit=dev` reports two moderate advisories against every React
+  Router 6 release. The fixes require the breaking Router 7 upgrade. SyncDev is
+  client-rendered (the SSR hydration path is unused), and all room navigation is
+  app-relative with URL-safe IDs. Plan the Router 7 and React upgrade together
+  rather than forcing it into an unrelated release.

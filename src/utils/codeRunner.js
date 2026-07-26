@@ -36,6 +36,7 @@ const runJavaScript = ({ source, stdin, timeout, onOutput }) => {
     let finished = false;
     let timeoutId;
     let settleExecution;
+    const captured = { stdout: '', stderr: '' };
     const startedAt = performance.now();
     const promise = new Promise((resolve) => {
         const settle = (next) => {
@@ -44,7 +45,14 @@ const runJavaScript = ({ source, stdin, timeout, onOutput }) => {
             window.clearTimeout(timeoutId);
             worker?.terminate();
             URL.revokeObjectURL(url);
-            resolve(result({ duration: Math.round(performance.now() - startedAt), ...next }));
+            resolve(
+                result({
+                    duration: Math.round(performance.now() - startedAt),
+                    ...next,
+                    stdout: `${captured.stdout}${next.stdout || ''}`,
+                    stderr: `${captured.stderr}${next.stderr || ''}`,
+                })
+            );
         };
         settleExecution = settle;
         const workerSource = `
@@ -68,7 +76,10 @@ const runJavaScript = ({ source, stdin, timeout, onOutput }) => {
         worker = new Worker(url);
         timeoutId = window.setTimeout(() => settle({ status: 'timeout', exitCode: 124, stderr: `Execution timed out after ${timeout}ms.` }), timeout);
         worker.onmessage = ({ data }) => {
-            if (data.type === 'output') onOutput?.(data.stream, data.text);
+            if (data.type === 'output') {
+                captured[data.stream] = `${captured[data.stream]}${data.text}`;
+                onOutput?.(data.stream, data.text);
+            }
             if (data.type === 'done') settle({});
             if (data.type === 'error') settle({ status: 'error', exitCode: 1, stderr: bounded(data.message, EXECUTION_LIMITS.output) });
         };

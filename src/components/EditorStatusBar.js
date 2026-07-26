@@ -37,6 +37,7 @@ const EditorStatusBar = ({
     onRun,
     onShowOutput,
     isRunning,
+    canRun = true,
 }) => {
     const effectiveLanguage =
         languageChoice === 'auto' ? detectedLanguage : languageChoice;
@@ -188,18 +189,18 @@ const EditorStatusBar = ({
                     <button
                         type="button"
                         onClick={onRun}
-                        disabled={isRunning}
+                        disabled={isRunning || !canRun}
                         className="flex min-w-[84px] items-center justify-center gap-2 rounded-l-xl px-4 text-sm font-extrabold transition hover:brightness-105 disabled:cursor-wait disabled:opacity-70"
                     >
                         <PlayIcon className={`h-4 w-4 ${isRunning ? 'animate-pulse' : ''}`} />
-                        {isRunning ? 'Running' : 'Run'}
+                        {isRunning ? 'Running' : canRun ? 'Run' : 'Observe'}
                     </button>
                     <details className="group relative rounded-r-xl border-l border-black/10">
                         <summary className="flex h-12 w-12 cursor-pointer list-none items-center justify-center transition hover:bg-black/5 [&::-webkit-details-marker]:hidden" title="Run options">
                             <ChevronIcon className="h-4 w-4 transition group-open:rotate-180" />
                         </summary>
                         <div className={`${popoverClass} -right-0 w-56 text-slate-700 dark:text-[#c0c4d1]`}>
-                            <button type="button" onClick={onRun} className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-xs font-semibold hover:bg-slate-100 dark:hover:bg-white/5">
+                            <button type="button" onClick={onRun} disabled={!canRun} className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-xs font-semibold hover:bg-slate-100 disabled:opacity-40 dark:hover:bg-white/5">
                                 <PlayIcon className="h-4 w-4 text-sync" />
                                 Run with configured runtime
                             </button>
