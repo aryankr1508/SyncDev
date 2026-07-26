@@ -32,11 +32,18 @@ const waitForJson = async (url, timeout = 10000) => {
 const connectCdp = async (webSocketUrl) => {
     const socket = new WebSocket(webSocketUrl);
     const pending = new Map();
+    const listeners = new Map();
     let commandId = 0;
 
     socket.onmessage = ({ data }) => {
         const message = JSON.parse(data);
-        if (!message.id || !pending.has(message.id)) return;
+        if (!message.id) {
+            listeners
+                .get(message.method)
+                ?.forEach((callback) => callback(message.params));
+            return;
+        }
+        if (!pending.has(message.id)) return;
         const { resolve, reject } = pending.get(message.id);
         pending.delete(message.id);
         if (message.error) reject(new Error(message.error.message));
@@ -55,6 +62,11 @@ const connectCdp = async (webSocketUrl) => {
             return new Promise((resolve, reject) => {
                 pending.set(id, { resolve, reject });
             });
+        },
+        on(method, callback) {
+            const callbacks = listeners.get(method) || new Set();
+            callbacks.add(callback);
+            listeners.set(method, callbacks);
         },
         close() {
             socket.close();
@@ -95,6 +107,47 @@ const run = async () => {
         cdp = await connectCdp(page.webSocketDebuggerUrl);
         await cdp.send('Runtime.enable');
         await cdp.send('Page.enable');
+        await cdp.send('Network.enable');
+
+        const requestTrace = new Map();
+        const credentialLabels = new Map();
+        const credentialLabel = (token) => {
+            if (!credentialLabels.has(token)) {
+                credentialLabels.set(
+                    token,
+                    `credential-${credentialLabels.size + 1}`
+                );
+            }
+            return credentialLabels.get(token);
+        };
+        cdp.on('Network.requestWillBeSent', ({ requestId, request }) => {
+            if (!request.url.includes('/api/room-sync')) return;
+            const url = new URL(request.url);
+            let body = {};
+            try {
+                body = JSON.parse(request.postData || '{}');
+            } catch (error) {
+                // Invalid JSON is surfaced by the API response.
+            }
+            requestTrace.set(requestId, {
+                method: request.method,
+                action:
+                    body.action ||
+                    (url.searchParams.get('health') ? 'health' : 'poll'),
+                clientId:
+                    body.clientId || url.searchParams.get('clientId') || '',
+                credential: credentialLabel(
+                    body.clientToken ||
+                        url.searchParams.get('clientToken') ||
+                        'none'
+                ),
+                status: 'pending',
+            });
+        });
+        cdp.on('Network.responseReceived', ({ requestId, response }) => {
+            const entry = requestTrace.get(requestId);
+            if (entry) entry.status = response.status;
+        });
 
         const evaluate = async (expression) => {
             const result = await cdp.send('Runtime.evaluate', {
@@ -177,9 +230,17 @@ const run = async () => {
             'Verify replay evidence through the rendered interface.'
         );
         await clickText('Save evidence checkpoint');
-        await waitFor(
-            `document.body.innerText.includes('UI smoke checkpoint')`
-        );
+        try {
+            await waitFor(
+                `document.body.innerText.includes('UI smoke checkpoint')`
+            );
+        } catch (error) {
+            console.error(
+                'Sanitized room request trace:',
+                JSON.stringify(Array.from(requestTrace.values()))
+            );
+            throw error;
+        }
 
         await clickText('Tests');
         await setValue('Test label', 'Increment visible case');
