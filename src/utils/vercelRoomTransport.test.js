@@ -1,4 +1,5 @@
 import { VercelRoomTransport } from './vercelRoomTransport';
+import ACTIONS from '../Actions';
 
 const response = (status, body) => ({
     ok: status >= 200 && status < 300,
@@ -14,20 +15,35 @@ describe('VercelRoomTransport authentication settling', () => {
     test('retries a transient 401 immediately after joining', async () => {
         jest.spyOn(global, 'fetch')
             .mockResolvedValueOnce(
+                response(200, {
+                    clients: [],
+                    stateVersion: 'created',
+                })
+            )
+            .mockResolvedValueOnce(
                 response(401, { message: 'Session is settling.' })
             )
             .mockResolvedValueOnce(
                 response(200, { stateVersion: 'ready' })
             );
         const transport = new VercelRoomTransport();
-        transport.roomId = 'room-1';
-        transport.clientToken = 'token-1';
-        transport.sessionReadyAt = Date.now();
+        let command;
+        transport.on(ACTIONS.SESSION_STATE, () => {
+            command = transport.request({ action: 'checkpoint' });
+        });
 
-        await expect(
-            transport.request({ action: 'checkpoint' })
-        ).resolves.toEqual({ stateVersion: 'ready' });
-        expect(global.fetch).toHaveBeenCalledTimes(2);
+        await transport.join({
+            roomId: 'room-1',
+            username: 'Host',
+            clientToken: 'token-1',
+            hostKey: 'host-key',
+            createRoom: true,
+            mode: 'interview',
+        });
+        await expect(command).resolves.toEqual({ stateVersion: 'ready' });
+        window.clearInterval(transport.pollTimer);
+        window.clearInterval(transport.heartbeatTimer);
+        expect(global.fetch).toHaveBeenCalledTimes(3);
     });
 
     test('does not retry an expired or genuinely invalid session', async () => {
