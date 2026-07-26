@@ -80,6 +80,7 @@ Current Vercel configuration:
 | `REACT_APP_EXECUTION_ENDPOINT=/api/execute` | Production, Preview, Development | No | Selects the execution API. |
 | `SUPABASE_URL=https://rprlvvqvssroladvokem.supabase.co` | Production, Preview, Development | No | Server-side Supabase REST base URL. |
 | `SUPABASE_SERVICE_ROLE_KEY` | Production, Preview | Yes | Modern Supabase server secret (`sb_secret_...`); value lives in Vercel and Supabase. |
+| `CRON_SECRET` | Production | Yes | Authenticates Vercel's daily `/api/keepalive` request; value lives in Vercel and Aryan's password manager. |
 | `CODE_EXECUTION_PROVIDER_URL` | Not currently configured | Usually no | Optional isolated compiler service endpoint. |
 | `CODE_EXECUTION_PROVIDER_TOKEN` | Not currently configured | Yes | Optional compiler service bearer token. |
 
@@ -167,6 +168,10 @@ Never paste credential values into this document.
 ## Deployment and CI/CD
 
 - Vercel watches `master` and deploys it to production automatically.
+- Vercel calls `/api/keepalive` daily at `04:17 UTC`. The authenticated
+  function performs minimal room, presence, and event queries so the
+  low-traffic Free Plan database remains active. Keep `CRON_SECRET`
+  server-only.
 - Pull-request branches receive preview deployments.
 - `vercel.json` uses the Create React App preset, runs `npm run verify`, publishes `build/`, and rewrites SPA routes to `index.html`.
 - GitHub Actions runs on pushes and pull requests targeting `master` with Node.js 20 and `npm ci`.
