@@ -104,6 +104,8 @@ class PollingRoomTransport {
             const result = await response.json().catch(() => ({}));
             const canRetryAuth =
                 response.status === 401 &&
+                body.action !== 'create' &&
+                body.action !== 'join' &&
                 this.sessionReadyAt > 0 &&
                 Date.now() - this.sessionReadyAt < AUTH_SETTLE_WINDOW &&
                 authRetry < AUTH_RETRY_DELAYS.length;
@@ -137,6 +139,7 @@ class PollingRoomTransport {
         this.username = username;
         this.clientToken = clientToken;
         this.hostKey = hostKey || '';
+        this.sessionReadyAt = Date.now();
         this.startPolling();
 
         try {
@@ -147,9 +150,9 @@ class PollingRoomTransport {
                 mode,
             });
             this.applyState(state, username);
-            this.sessionReadyAt = Date.now();
             this.failures = 0;
         } catch (error) {
+            this.sessionReadyAt = 0;
             this.connected = false;
             this.notify('room-error', { message: error.message });
             this.notify('connect_error', error);
