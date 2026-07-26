@@ -6,6 +6,7 @@ import EditorStatusBar from '../components/EditorStatusBar';
 import RoomSidebar from '../components/RoomSidebar';
 import WorkspaceHeader from '../components/WorkspaceHeader';
 import OutputPanel from '../components/OutputPanel';
+import SessionLabPanel from '../components/SessionLabPanel';
 import VerticalResizeHandle from '../components/ui/VerticalResizeHandle';
 import { detectLanguage, LANGUAGE_MAP } from '../editor/languages';
 import { useEditorPreferences } from '../hooks/useEditorPreferences';
@@ -13,28 +14,43 @@ import { useRoomSocket } from '../hooks/useRoomSocket';
 import { copyText } from '../utils/clipboard';
 import {
     forgetRoomUser,
-    getRememberedRoomUser,
+    getRememberedRoomSession,
 } from '../utils/roomSession';
 import { PREVIEW_LANGUAGES } from '../utils/codeRunner';
 import { useCodeExecution } from '../hooks/useCodeExecution';
+import { downloadSessionReport } from '../utils/sessionReport';
 
 const EditorPage = () => {
     const codeRef = useRef('');
+    const revisionRef = useRef('');
     const editorFrameRef = useRef(null);
     const location = useLocation();
     const { roomId } = useParams();
     const navigate = useNavigate();
-    const username = useMemo(
-        () => location.state?.username || getRememberedRoomUser(roomId),
-        [location.state?.username, roomId]
+    const roomSession = useMemo(
+        () =>
+            location.state?.roomSession ||
+            getRememberedRoomSession(roomId),
+        [location.state?.roomSession, roomId]
     );
-    const { clients, socket, status } = useRoomSocket({ roomId, username });
+    const {
+        clients,
+        socket,
+        status,
+        session,
+        sendCommand,
+    } = useRoomSocket({ roomId, roomSession });
     const [preferences, updatePreferences] = useEditorPreferences();
     const [languageChoice, setLanguageChoice] = useState('auto');
     const [detectedLanguage, setDetectedLanguage] = useState('javascript');
     const [cursor, setCursor] = useState({ line: 1, column: 1, selected: 0 });
     const [source, setSource] = useState('');
+    const [sessionOpen, setSessionOpen] = useState(false);
     const execution = useCodeExecution();
+    const currentRole = session.currentUserRole || 'participant';
+    const isReadOnly =
+        currentRole === 'observer' ||
+        (session.editPolicy === 'host-only' && currentRole !== 'host');
 
     const effectiveLanguage =
         languageChoice === 'auto' ? detectedLanguage : languageChoice;
@@ -64,14 +80,82 @@ const EditorPage = () => {
         } else {
             toast.success(`Language set to ${LANGUAGE_MAP[nextLanguage].label}`);
         }
+
+        const nextEffectiveLanguage =
+            nextLanguage === 'auto'
+                ? detectLanguage(codeRef.current)
+                : nextLanguage;
+        if (currentRole === 'host') {
+            sendCommand({
+                action: 'settings',
+                language: nextEffectiveLanguage,
+            });
+        }
     };
 
-    const runCode = () => {
+    const ensureRevision = () => {
+        if (!revisionRef.current) {
+            revisionRef.current = `${Date.now()}-${
+                socket?.id || 'session'
+            }-run`;
+        }
+        return revisionRef.current;
+    };
+
+    const recordExecution = (action, result, revision) => {
+        sendCommand({
+            action,
+            source: codeRef.current,
+            revision,
+            language: effectiveLanguage,
+            status: result.status,
+            exitCode: result.exitCode,
+            duration: result.duration,
+            stdout: result.stdout,
+            stderr: result.stderr,
+            total: result.total,
+            passed: result.passed,
+            eventId: `${Date.now()}-${socket?.id || 'run'}-${action}`,
+        });
+    };
+
+    const runCode = async () => {
+        if (isReadOnly) {
+            toast.error('Your room role is read only');
+            return;
+        }
         if (!codeRef.current.trim()) {
             toast('Add code before running it');
             return;
         }
-        execution.run({ language: effectiveLanguage, source: codeRef.current, timeout: 4000 });
+        const revision = ensureRevision();
+        const result = await execution.run({
+            language: effectiveLanguage,
+            source: codeRef.current,
+            timeout: 4000,
+        });
+        recordExecution('run', result, revision);
+    };
+
+    const runTests = async () => {
+        if (isReadOnly || session.tests.length === 0) return;
+        if (!codeRef.current.trim()) {
+            toast('Add code before running the evaluation suite');
+            return;
+        }
+        const revision = ensureRevision();
+        const result = await execution.runSuite({
+            language: effectiveLanguage,
+            source: codeRef.current,
+            timeout: 4000,
+            tests: session.tests,
+        });
+        recordExecution('test-run', result, revision);
+        if (result.status === 'success') {
+            toast.success(`${result.passed}/${result.total} tests passed`);
+        } else if (result.status !== 'cancelled') {
+            toast.error(`${result.passed}/${result.total} tests passed`);
+        }
     };
 
     const previewDocument = useMemo(() => {
@@ -91,7 +175,9 @@ const EditorPage = () => {
         return '';
     }, [effectiveLanguage, source]);
 
-    if (!username) return <Navigate to="/" replace />;
+    if (!roomSession?.username || !roomSession?.clientToken) {
+        return <Navigate to="/" replace />;
+    }
 
     return (
         <main className="min-h-screen overflow-x-hidden bg-[#f7f9fb] p-3 transition-colors duration-300 dark:bg-[#020817] sm:p-5">
@@ -100,13 +186,28 @@ const EditorPage = () => {
                     clients={clients}
                     socketId={socket?.id}
                     status={status}
+                    currentRole={currentRole}
+                    onRoleChange={(targetClientId, role) =>
+                        sendCommand({
+                            action: 'role',
+                            targetClientId,
+                            role,
+                        })
+                    }
                     onCopyRoom={copyRoomId}
                     onLeave={leaveRoom}
                 />
 
                 <section className={`relative flex min-w-0 flex-col rounded-[20px] border border-slate-200/90 bg-white transition-colors duration-300 dark:border-[#1b243c] dark:bg-[#070c1e] ${preferences.editorHeight ? 'overflow-y-auto' : 'overflow-hidden'}`}>
                     <div className="pointer-events-none absolute inset-0 hidden bg-[radial-gradient(circle_at_58%_42%,rgba(34,39,77,0.16),transparent_44%)] dark:block" />
-                    <WorkspaceHeader />
+                    <WorkspaceHeader
+                        sessionOpen={sessionOpen}
+                        onToggleSession={() =>
+                            setSessionOpen((current) => !current)
+                        }
+                        eventCount={session.events.length}
+                        currentRole={currentRole}
+                    />
 
                     <div
                         ref={editorFrameRef}
@@ -130,8 +231,12 @@ const EditorPage = () => {
                                 codeRef.current = code;
                                 setSource(code);
                             }}
+                            onRevisionChange={(revision) => {
+                                if (revision) revisionRef.current = revision;
+                            }}
                             onCursorChange={setCursor}
                             onLanguageDetected={setDetectedLanguage}
+                            readOnly={isReadOnly}
                             onSave={() =>
                                 toast.success('Your changes are already synced', {
                                     id: 'sync-confirmation',
@@ -177,6 +282,7 @@ const EditorPage = () => {
                         onRun={runCode}
                         onShowOutput={() => execution.dispatch({ type: 'OPEN', value: true })}
                         isRunning={execution.state.status === 'running'}
+                        canRun={!isReadOnly}
                     />
 
                     <OutputPanel
@@ -184,6 +290,48 @@ const EditorPage = () => {
                         onRun={runCode}
                         onStop={execution.stop}
                         onCopy={() => toast.success('Output copied')}
+                        canRun={!isReadOnly}
+                    />
+
+                    <SessionLabPanel
+                        open={sessionOpen}
+                        onClose={() => setSessionOpen(false)}
+                        roomId={roomId}
+                        session={session}
+                        clients={clients}
+                        currentRole={currentRole}
+                        isRunning={execution.state.status === 'running'}
+                        onCheckpoint={({ title, note }) =>
+                            sendCommand({
+                                action: 'checkpoint',
+                                title,
+                                note,
+                                eventId: `${Date.now()}-${
+                                    socket?.id || 'checkpoint'
+                                }`,
+                            })
+                        }
+                        onRestore={(event) => {
+                            sendCommand({
+                                action: 'restore',
+                                eventId: event.id,
+                            });
+                            toast.success('Restoring the selected revision');
+                        }}
+                        onAddTest={(test) =>
+                            sendCommand({ action: 'test-upsert', test })
+                        }
+                        onDeleteTest={(testId) =>
+                            sendCommand({ action: 'test-delete', testId })
+                        }
+                        onRunTests={runTests}
+                        onSettings={(settings) =>
+                            sendCommand({ action: 'settings', ...settings })
+                        }
+                        onExport={(report) => {
+                            downloadSessionReport(report, roomId);
+                            toast.success('Session report downloaded');
+                        }}
                     />
                 </section>
             </div>

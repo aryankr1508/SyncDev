@@ -78,25 +78,37 @@ const Editor = ({
     onCodeChange,
     onCursorChange,
     onLanguageDetected,
+    onRevisionChange,
     onSave,
+    readOnly = false,
 }) => {
     const editorRef = useRef(null);
     const textareaRef = useRef(null);
     const socketRef = useRef(socket);
+    const languageRef = useRef(language);
     const callbacksRef = useRef({
         onCodeChange,
         onCursorChange,
         onLanguageDetected,
+        onRevisionChange,
         onSave,
     });
     const autoDetectRef = useRef(autoDetect);
-    const initialOptionsRef = useRef({ language, theme, fontSize, wordWrap });
+    const initialOptionsRef = useRef({
+        language,
+        theme,
+        fontSize,
+        wordWrap,
+        readOnly,
+    });
     socketRef.current = socket;
+    languageRef.current = language;
     autoDetectRef.current = autoDetect;
     callbacksRef.current = {
         onCodeChange,
         onCursorChange,
         onLanguageDetected,
+        onRevisionChange,
         onSave,
     };
 
@@ -121,6 +133,7 @@ const Editor = ({
             },
             lineNumbers: true,
             lineWrapping: initialOptions.wordWrap,
+            readOnly: initialOptions.readOnly ? 'nocursor' : false,
             tabSize: 4,
             indentUnit: 4,
             indentWithTabs: false,
@@ -179,11 +192,27 @@ const Editor = ({
 
         editor.on('change', (instance, changes) => {
             const code = instance.getValue();
-            callbacksRef.current.onCodeChange(code);
+            const isLocal = changes.origin !== 'setValue';
+            const revision = isLocal
+                ? `${Date.now()}-${
+                      socketRef.current?.id || 'local'
+                  }-${Math.random().toString(36).slice(2, 8)}`
+                : '';
+            callbacksRef.current.onCodeChange(code, {
+                revision,
+                local: isLocal,
+            });
+            if (revision) callbacksRef.current.onRevisionChange(revision);
             scheduleDetection(code);
 
-            if (changes.origin !== 'setValue' && socketRef.current?.connected) {
-                socketRef.current.emit(ACTIONS.CODE_CHANGE, { roomId, code });
+            if (isLocal && socketRef.current?.connected) {
+                socketRef.current.emit(ACTIONS.CODE_CHANGE, {
+                    roomId,
+                    code,
+                    revision,
+                    language: languageRef.current,
+                    eventId: revision,
+                });
             }
         });
 
@@ -226,6 +255,7 @@ const Editor = ({
         editor.setOption('theme', theme);
         applyEditorThemeSurface(editor, theme);
         editor.setOption('lineWrapping', wordWrap);
+        editor.setOption('readOnly', readOnly ? 'nocursor' : false);
         editor.getWrapperElement().style.fontSize = `${fontSize}px`;
         editor.refresh();
 
@@ -234,19 +264,20 @@ const Editor = ({
                 detectLanguage(editor.getValue())
             );
         }
-    }, [autoDetect, fontSize, language, theme, wordWrap]);
+    }, [autoDetect, fontSize, language, readOnly, theme, wordWrap]);
 
     useEffect(() => {
         if (!socket) {
             return undefined;
         }
 
-        const handleCodeChange = ({ code }) => {
+        const handleCodeChange = ({ code, revision }) => {
             if (
                 typeof code === 'string' &&
                 editorRef.current &&
                 code !== editorRef.current.getValue()
             ) {
+                callbacksRef.current.onRevisionChange(revision || '');
                 const cursor = editorRef.current.getCursor();
                 editorRef.current.setValue(code);
                 editorRef.current.setCursor(cursor);

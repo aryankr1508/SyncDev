@@ -28,6 +28,7 @@ const parseResponse = async (response) => {
 const request = async (table, { method = 'GET', query, body, prefer } = {}) => {
     const { url, serviceRoleKey } = getConfig();
     const endpoint = new URL(`${url}/rest/v1/${table}`);
+    const isModernSecret = serviceRoleKey.startsWith('sb_secret_');
 
     Object.entries(query || {}).forEach(([key, value]) => {
         endpoint.searchParams.set(key, value);
@@ -37,7 +38,9 @@ const request = async (table, { method = 'GET', query, body, prefer } = {}) => {
         method,
         headers: {
             apikey: serviceRoleKey,
-            authorization: `Bearer ${serviceRoleKey}`,
+            ...(!isModernSecret
+                ? { authorization: `Bearer ${serviceRoleKey}` }
+                : {}),
             'content-type': 'application/json',
             ...(prefer ? { prefer } : {}),
         },

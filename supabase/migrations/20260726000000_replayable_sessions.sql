@@ -1,30 +1,3 @@
-create table if not exists public.syncdev_rooms (
-    room_id text primary key check (char_length(room_id) between 1 and 128),
-    code text not null default '' check (char_length(code) <= 500000),
-    revision text not null default '' check (char_length(revision) <= 160),
-    author_id text not null default '' check (char_length(author_id) <= 100),
-    host_key_hash text not null default '' check (char_length(host_key_hash) <= 128),
-    mode text not null default 'interview'
-        check (mode in ('interview', 'training', 'debugging')),
-    edit_policy text not null default 'everyone'
-        check (edit_policy in ('everyone', 'host-only')),
-    language text not null default 'javascript' check (char_length(language) <= 40),
-    created_at timestamptz not null default now(),
-    expires_at timestamptz not null default (now() + interval '7 days'),
-    updated_at timestamptz not null default now()
-);
-
-create table if not exists public.syncdev_room_clients (
-    room_id text not null references public.syncdev_rooms(room_id) on delete cascade,
-    client_id text not null check (char_length(client_id) between 1 and 100),
-    username text not null check (char_length(username) between 1 and 32),
-    role text not null default 'participant'
-        check (role in ('host', 'participant', 'observer')),
-    token_hash text not null default '' check (char_length(token_hash) <= 128),
-    seen_at timestamptz not null default now(),
-    primary key (room_id, client_id)
-);
-
 alter table public.syncdev_rooms
     add column if not exists host_key_hash text not null default '';
 alter table public.syncdev_rooms
@@ -42,6 +15,34 @@ alter table public.syncdev_room_clients
     add column if not exists role text not null default 'participant';
 alter table public.syncdev_room_clients
     add column if not exists token_hash text not null default '';
+
+do $$
+begin
+    if not exists (
+        select 1 from pg_constraint
+        where conname = 'syncdev_rooms_mode_check'
+    ) then
+        alter table public.syncdev_rooms
+            add constraint syncdev_rooms_mode_check
+            check (mode in ('interview', 'training', 'debugging'));
+    end if;
+    if not exists (
+        select 1 from pg_constraint
+        where conname = 'syncdev_rooms_edit_policy_check'
+    ) then
+        alter table public.syncdev_rooms
+            add constraint syncdev_rooms_edit_policy_check
+            check (edit_policy in ('everyone', 'host-only'));
+    end if;
+    if not exists (
+        select 1 from pg_constraint
+        where conname = 'syncdev_room_clients_role_check'
+    ) then
+        alter table public.syncdev_room_clients
+            add constraint syncdev_room_clients_role_check
+            check (role in ('host', 'participant', 'observer'));
+    end if;
+end $$;
 
 create table if not exists public.syncdev_room_events (
     event_id text primary key check (char_length(event_id) between 1 and 160),
@@ -76,46 +77,13 @@ create table if not exists public.syncdev_room_tests (
     primary key (room_id, test_id)
 );
 
-create index if not exists syncdev_room_clients_seen_at_idx
-    on public.syncdev_room_clients (room_id, seen_at);
 create index if not exists syncdev_room_events_created_at_idx
     on public.syncdev_room_events (room_id, created_at desc);
 create index if not exists syncdev_rooms_expires_at_idx
     on public.syncdev_rooms (expires_at);
 
-alter table public.syncdev_rooms enable row level security;
-alter table public.syncdev_room_clients enable row level security;
 alter table public.syncdev_room_events enable row level security;
 alter table public.syncdev_room_tests enable row level security;
 
-revoke all on public.syncdev_rooms from anon, authenticated;
-revoke all on public.syncdev_room_clients from anon, authenticated;
 revoke all on public.syncdev_room_events from anon, authenticated;
 revoke all on public.syncdev_room_tests from anon, authenticated;
-
-create or replace function public.prune_syncdev_room_events()
-returns trigger
-language plpgsql
-security definer
-set search_path = public
-as $$
-begin
-    delete from public.syncdev_room_events
-    where event_id in (
-        select event_id
-        from public.syncdev_room_events
-        where room_id = new.room_id
-        order by created_at desc, event_id desc
-        offset 120
-    );
-    return new;
-end;
-$$;
-
-drop trigger if exists syncdev_room_events_prune_trigger
-    on public.syncdev_room_events;
-create trigger syncdev_room_events_prune_trigger
-after insert on public.syncdev_room_events
-for each row execute function public.prune_syncdev_room_events();
-
-revoke all on function public.prune_syncdev_room_events() from public;

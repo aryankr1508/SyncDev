@@ -1,5 +1,6 @@
 const roomSyncHandler = require('../../api/room-sync');
 const executeHandler = require('../../api/execute');
+const { createHash } = require('crypto');
 
 const createResponse = () => {
     const response = {
@@ -61,28 +62,40 @@ describe('Vercel room synchronization API', () => {
     });
 
     test('joins a room and returns the persisted room state', async () => {
+        const clientToken = 'client-secret';
+        const tokenHash = createHash('sha256')
+            .update(clientToken)
+            .digest('hex');
+        const room = {
+            room_id: 'room-1',
+            code: 'const ready = true;',
+            revision: 'r1',
+            author_id: 'other-client',
+            host_key_hash: 'host-hash',
+            mode: 'interview',
+            edit_policy: 'everyone',
+            language: 'javascript',
+            created_at: new Date().toISOString(),
+            expires_at: new Date(Date.now() + 86400000).toISOString(),
+            updated_at: new Date().toISOString(),
+        };
+        const client = {
+            client_id: 'client-1',
+            username: 'Aryan',
+            role: 'participant',
+            token_hash: tokenHash,
+            seen_at: new Date().toISOString(),
+        };
         global.fetch
-            .mockImplementationOnce(() => fetchResult(null, 201))
+            .mockImplementationOnce(() => fetchResult([room]))
             .mockImplementationOnce(() => fetchResult(null, 201))
             .mockImplementationOnce(() => fetchResult(null, 204))
-            .mockImplementationOnce(() =>
-                fetchResult([
-                    {
-                        code: 'const ready = true;',
-                        revision: 'r1',
-                        author_id: 'other-client',
-                    },
-                ])
-            )
-            .mockImplementationOnce(() =>
-                fetchResult([
-                    {
-                        client_id: 'client-1',
-                        username: 'Aryan',
-                        seen_at: new Date().toISOString(),
-                    },
-                ])
-            );
+            .mockImplementationOnce(() => fetchResult([client]))
+            .mockImplementationOnce(() => fetchResult(null, 204))
+            .mockImplementationOnce(() => fetchResult([room]))
+            .mockImplementationOnce(() => fetchResult([client]))
+            .mockImplementationOnce(() => fetchResult([]))
+            .mockImplementationOnce(() => fetchResult([]));
 
         const response = createResponse();
         await roomSyncHandler(
@@ -94,6 +107,7 @@ describe('Vercel room synchronization API', () => {
                     roomId: 'room-1',
                     clientId: 'client-1',
                     username: 'Aryan',
+                    clientToken,
                 },
             },
             response
@@ -104,9 +118,30 @@ describe('Vercel room synchronization API', () => {
             code: 'const ready = true;',
             revision: 'r1',
             authorId: 'other-client',
-            clients: [{ socketId: 'client-1', username: 'Aryan' }],
+            currentUserRole: 'participant',
+            clients: [
+                {
+                    socketId: 'client-1',
+                    username: 'Aryan',
+                    role: 'participant',
+                },
+            ],
         });
-        expect(global.fetch).toHaveBeenCalledTimes(5);
+        expect(global.fetch).toHaveBeenCalledTimes(9);
+    });
+
+    test('requires an authenticated room session before returning history', async () => {
+        const response = createResponse();
+        await roomSyncHandler(
+            {
+                method: 'GET',
+                query: { roomId: 'room-1', clientId: 'client-1' },
+            },
+            response
+        );
+
+        expect(response.statusCode).toBe(400);
+        expect(global.fetch).not.toHaveBeenCalled();
     });
 });
 

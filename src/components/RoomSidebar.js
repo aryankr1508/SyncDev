@@ -21,9 +21,16 @@ const statusDetails = {
     },
 };
 
-const RoomSidebar = ({ clients, socketId, status, onCopyRoom, onLeave }) => {
+const RoomSidebar = ({
+    clients,
+    socketId,
+    status,
+    currentRole,
+    onRoleChange,
+    onCopyRoom,
+    onLeave,
+}) => {
     const connection = statusDetails[status];
-    const hostId = clients[0]?.socketId;
 
     return (
         <aside className="relative z-20 flex min-h-[650px] flex-col overflow-hidden rounded-[20px] border border-slate-200/90 bg-white/95 px-4 py-5 text-slate-800 backdrop-blur-xl transition-colors duration-300 dark:border-[#1b2741] dark:bg-[#061024]/95 dark:text-white lg:h-full lg:px-5">
@@ -59,8 +66,16 @@ const RoomSidebar = ({ clients, socketId, status, onCopyRoom, onLeave }) => {
                         <Client
                             key={client.socketId}
                             username={client.username}
-                            isHost={client.socketId === hostId}
+                            role={client.role}
                             isCurrent={client.socketId === socketId}
+                            canManageRole={
+                                currentRole === 'host' &&
+                                client.role !== 'host' &&
+                                client.socketId !== socketId
+                            }
+                            onRoleChange={(role) =>
+                                onRoleChange(client.socketId, role)
+                            }
                         />
                     ))}
                 </div>

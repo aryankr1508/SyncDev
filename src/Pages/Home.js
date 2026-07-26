@@ -5,12 +5,16 @@ import BrandLogo from '../components/ui/BrandLogo';
 import ThemeToggle from '../components/ui/ThemeToggle';
 import {
     ArrowRightIcon,
+    ChevronIcon,
     CopyIcon,
     PlusIcon,
     UserIcon,
 } from '../components/ui/Icons';
 import { copyText } from '../utils/clipboard';
-import { rememberRoomUser } from '../utils/roomSession';
+import {
+    createRoomCredentials,
+    rememberRoomSession,
+} from '../utils/roomSession';
 
 const createRoomId = () => {
     if (window.crypto?.randomUUID) return window.crypto.randomUUID();
@@ -22,12 +26,20 @@ const Home = () => {
     const usernameInputRef = useRef(null);
     const [roomId, setRoomId] = useState('');
     const [username, setUsername] = useState('');
+    const [roomDraft, setRoomDraft] = useState(null);
 
     const createNewRoom = () => {
         const newRoomId = createRoomId();
         setRoomId(newRoomId);
+        setRoomDraft(
+            createRoomCredentials({
+                username,
+                createRoom: true,
+                mode: 'interview',
+            })
+        );
         usernameInputRef.current?.focus();
-        toast.success('New room ready — add your name to continue');
+        toast.success('Private host room ready — add your name to continue');
     };
 
     const copyRoomId = async () => {
@@ -49,10 +61,21 @@ const Home = () => {
             toast.error('Room ID and display name are required');
             return;
         }
+        if (!/^[A-Za-z0-9_-]+$/.test(normalizedRoomId)) {
+            toast.error('Room IDs may contain only letters, numbers, hyphens, and underscores');
+            return;
+        }
 
-        rememberRoomUser(normalizedRoomId, normalizedUsername);
+        const session =
+            roomDraft && normalizedRoomId === roomId.trim()
+                ? { ...roomDraft, username: normalizedUsername }
+                : createRoomCredentials({
+                      username: normalizedUsername,
+                      createRoom: false,
+                  });
+        rememberRoomSession(normalizedRoomId, session);
         navigate(`/editor/${normalizedRoomId}`, {
-            state: { username: normalizedUsername },
+            state: { roomSession: session },
         });
     };
 
@@ -100,7 +123,15 @@ const Home = () => {
                                     type="text"
                                     className="h-12 w-full rounded-xl border border-slate-300 bg-slate-50/90 px-4 pr-12 text-sm font-medium text-slate-900 outline-none transition duration-200 placeholder:text-slate-400 hover:border-slate-400 focus:border-sync/70 focus:shadow-[0_0_0_3px_rgba(74,237,136,0.12),0_0_28px_rgba(74,237,136,0.08)] dark:border-[#343a55] dark:bg-[#0d1126]/90 dark:text-white dark:placeholder:text-[#777d97] dark:hover:border-[#4a5272]"
                                     placeholder="Paste your invitation ID"
-                                    onChange={(event) => setRoomId(event.target.value)}
+                                    onChange={(event) => {
+                                        setRoomId(event.target.value);
+                                        if (
+                                            roomDraft &&
+                                            event.target.value.trim() !== roomId.trim()
+                                        ) {
+                                            setRoomDraft(null);
+                                        }
+                                    }}
                                     value={roomId}
                                     autoComplete="off"
                                     spellCheck="false"
@@ -136,11 +167,48 @@ const Home = () => {
                             </span>
                         </label>
 
+                        {roomDraft && (
+                            <label className="block motion-safe:animate-rise-in">
+                                <span className="mb-2.5 block text-[11px] font-bold uppercase tracking-[0.18em] text-slate-700 dark:text-white/90">
+                                    Room purpose
+                                </span>
+                                <span className="relative block">
+                                    <select
+                                        value={roomDraft.mode}
+                                        onChange={(event) =>
+                                            setRoomDraft((current) => ({
+                                                ...current,
+                                                mode: event.target.value,
+                                            }))
+                                        }
+                                        className="h-12 w-full appearance-none rounded-xl border border-slate-300 bg-slate-50/90 px-4 pr-11 text-sm font-semibold text-slate-900 outline-none transition focus:border-sync/70 focus:shadow-[0_0_0_3px_rgba(74,237,136,0.12)] dark:border-[#343a55] dark:bg-[#0d1126]/90 dark:text-white"
+                                    >
+                                        <option value="interview">
+                                            Technical interview
+                                        </option>
+                                        <option value="training">
+                                            Training session
+                                        </option>
+                                        <option value="debugging">
+                                            Debugging room
+                                        </option>
+                                    </select>
+                                    <ChevronIcon className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8c92aa]" />
+                                </span>
+                                <span className="mt-2 block text-[10px] leading-4 text-slate-500 dark:text-[#7f879e]">
+                                    You will join as host. Everyone else joins with
+                                    participant permissions.
+                                </span>
+                            </label>
+                        )}
+
                         <button
                             className="group flex h-[52px] w-full items-center justify-center rounded-xl bg-[linear-gradient(100deg,#50d88d,#69e3b3)] px-5 text-sm font-extrabold text-[#07131a] shadow-[0_12px_34px_rgba(50,222,143,0.28)] transition duration-200 hover:-translate-y-0.5 hover:brightness-110 hover:shadow-[0_16px_42px_rgba(50,222,143,0.38)] focus:outline-none focus:ring-4 focus:ring-sync/20 active:translate-y-0"
                             type="submit"
                         >
-                            <span className="flex-1 text-center">Join room</span>
+                            <span className="flex-1 text-center">
+                                {roomDraft ? 'Start private room' : 'Join room'}
+                            </span>
                             <ArrowRightIcon className="h-5 w-5 transition-transform group-hover:translate-x-1" />
                         </button>
                     </form>
