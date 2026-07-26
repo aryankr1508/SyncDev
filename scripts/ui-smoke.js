@@ -9,6 +9,24 @@ const chromePath =
     '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const appUrl = process.env.SYNCDEV_UI_URL || 'http://localhost:3100';
 const mode = process.env.SYNCDEV_SMOKE_MODE || 'interview';
+const smokeLanguage =
+    process.env.SYNCDEV_SMOKE_LANGUAGE || 'javascript';
+const executionCase = {
+    javascript: {
+        label: 'JavaScript',
+        source: 'console.log(Number(stdin) + 1);',
+    },
+    java: {
+        label: 'Java',
+        source:
+            'import java.util.Scanner;\npublic class Main {\n  public static void main(String[] args) {\n    Scanner input = new Scanner(System.in);\n    System.out.println(input.nextInt() + 1);\n  }\n}',
+    },
+}[smokeLanguage];
+if (!executionCase) {
+    throw new Error(
+        `Unsupported smoke-test execution language: ${smokeLanguage}`
+    );
+}
 const appTheme = process.env.SYNCDEV_APP_THEME || '';
 if (appTheme && !['light', 'dark'].includes(appTheme)) {
     throw new Error(`Unsupported smoke-test app theme: ${appTheme}`);
@@ -360,9 +378,16 @@ const run = async () => {
         await evaluate(`(() => {
             const wrapper = document.querySelector('.CodeMirror');
             if (!wrapper?.CodeMirror) return false;
-            wrapper.CodeMirror.setValue('console.log(Number(stdin) + 1);');
+            wrapper.CodeMirror.setValue(${JSON.stringify(
+                executionCase.source
+            )});
             return true;
         })()`);
+        await waitFor(
+            `document.querySelector('select[title="Language mode"]')?.selectedOptions[0]?.textContent.trim() === ${JSON.stringify(
+                `Auto · ${executionCase.label}`
+            )}`
+        );
         await clickText('Run suite');
         await waitFor(
             `document.body.innerText.includes('1/1 tests passed') &&
@@ -393,7 +418,7 @@ const run = async () => {
                     'lab notebook drawer',
                     'checkpoint creation',
                     'test creation',
-                    'JavaScript evaluation suite',
+                    `${executionCase.label} automatic detection and evaluation suite`,
                     'revision-linked test evidence',
                 ],
             })
