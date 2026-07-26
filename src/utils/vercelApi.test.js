@@ -1,6 +1,14 @@
+jest.mock('../../server/sandbox-execution', () => ({
+    EXECUTABLE_LANGUAGES: new Set(['java', 'python', 'c', 'cpp']),
+    runInVercelSandbox: jest.fn(),
+}));
+
 const roomSyncHandler = require('../../api/room-sync');
 const executeHandler = require('../../api/execute');
 const { createHash } = require('crypto');
+const {
+    runInVercelSandbox,
+} = require('../../server/sandbox-execution');
 
 const createResponse = () => {
     const response = {
@@ -146,6 +154,30 @@ describe('Vercel room synchronization API', () => {
 });
 
 describe('Vercel execution API', () => {
+    const originalProviderUrl = process.env.CODE_EXECUTION_PROVIDER_URL;
+    const originalProviderToken =
+        process.env.CODE_EXECUTION_PROVIDER_TOKEN;
+
+    beforeEach(() => {
+        delete process.env.CODE_EXECUTION_PROVIDER_URL;
+        delete process.env.CODE_EXECUTION_PROVIDER_TOKEN;
+        runInVercelSandbox.mockReset();
+    });
+
+    afterAll(() => {
+        if (originalProviderUrl === undefined) {
+            delete process.env.CODE_EXECUTION_PROVIDER_URL;
+        } else {
+            process.env.CODE_EXECUTION_PROVIDER_URL = originalProviderUrl;
+        }
+        if (originalProviderToken === undefined) {
+            delete process.env.CODE_EXECUTION_PROVIDER_TOKEN;
+        } else {
+            process.env.CODE_EXECUTION_PROVIDER_TOKEN =
+                originalProviderToken;
+        }
+    });
+
     test('rejects unsupported methods', async () => {
         const response = createResponse();
         await executeHandler({ method: 'GET', headers: {} }, response);
@@ -165,5 +197,43 @@ describe('Vercel execution API', () => {
         );
         expect(response.statusCode).toBe(400);
         expect(global.fetch).not.toHaveBeenCalled();
+    });
+
+    test('runs Java through the isolated Vercel sandbox by default', async () => {
+        runInVercelSandbox.mockResolvedValue({
+            stdout: 'Hello Java\n',
+            stderr: '',
+            exitCode: 0,
+            duration: 112,
+            status: 'success',
+            provider: 'vercel-sandbox',
+        });
+        const response = createResponse();
+
+        await executeHandler(
+            {
+                method: 'POST',
+                headers: {},
+                body: {
+                    language: 'java',
+                    source:
+                        'public class Main { public static void main(String[] args) {} }',
+                },
+            },
+            response
+        );
+
+        expect(response.statusCode).toBe(200);
+        expect(runInVercelSandbox).toHaveBeenCalledWith(
+            expect.objectContaining({
+                language: 'java',
+                timeout: 4000,
+            })
+        );
+        expect(response.body).toMatchObject({
+            stdout: 'Hello Java\n',
+            status: 'success',
+            provider: 'vercel-sandbox',
+        });
     });
 });

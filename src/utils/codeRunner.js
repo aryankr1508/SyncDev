@@ -107,11 +107,31 @@ export const getRemoteExecutionEndpoint = () => {
     return process.env.REACT_APP_EXECUTION_ENDPOINT || '/api/execute';
 };
 
-const runRemote = async (request) => {
-    const response = await fetch(getRemoteExecutionEndpoint(), { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(request) });
-    const body = await response.json().catch(() => ({}));
-    if (!response.ok) return result({ status: 'error', exitCode: 1, stderr: `${body.message || 'Remote execution is unavailable.'}\n` });
-    return result({ ...body, stdout: bounded(body.stdout, EXECUTION_LIMITS.output), stderr: bounded(body.stderr, EXECUTION_LIMITS.output) });
+const runRemote = async (request, signal) => {
+    try {
+        const response = await fetch(getRemoteExecutionEndpoint(), {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify(request),
+            signal,
+        });
+        const body = await response.json().catch(() => ({}));
+        if (!response.ok) return result({ status: 'error', exitCode: 1, stderr: `${body.message || 'Remote execution is unavailable.'}\n` });
+        return result({ ...body, stdout: bounded(body.stdout, EXECUTION_LIMITS.output), stderr: bounded(body.stderr, EXECUTION_LIMITS.output) });
+    } catch (error) {
+        if (error.name === 'AbortError') {
+            return result({
+                status: 'cancelled',
+                exitCode: null,
+                stderr: 'Execution cancelled.\n',
+            });
+        }
+        return result({
+            status: 'error',
+            exitCode: 1,
+            stderr: 'The isolated execution service is unavailable.\n',
+        });
+    }
 };
 
 /** Start an execution using the provider-neutral request/result contract. */
@@ -121,6 +141,12 @@ export const startCodeExecution = (request, onOutput) => {
     const normalized = validation.value;
     if (normalized.language === 'javascript') return runJavaScript({ ...normalized, onOutput });
     if (normalized.language === 'json' || normalized.language === 'yaml') return { promise: runValidation(normalized), cancel: () => {} };
-    if (REMOTE_LANGUAGES.has(normalized.language)) return { promise: runRemote(normalized), cancel: () => {} };
+    if (REMOTE_LANGUAGES.has(normalized.language)) {
+        const controller = new AbortController();
+        return {
+            promise: runRemote(normalized, controller.signal),
+            cancel: () => controller.abort(),
+        };
+    }
     return { promise: Promise.resolve(result({ status: 'error', exitCode: 1, stderr: `Execution is not available for ${normalized.language}.\n` })), cancel: () => {} };
 };

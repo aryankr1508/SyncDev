@@ -4,7 +4,13 @@
   "buildCommand": "npm run verify",
   "outputDirectory": "build",
   "functions": {
-    "api/*.js": {
+    "api/execute.js": {
+      "maxDuration": 60
+    },
+    "api/keepalive.js": {
+      "maxDuration": 15
+    },
+    "api/room-sync.js": {
       "maxDuration": 15
     }
   },

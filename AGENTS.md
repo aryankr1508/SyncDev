@@ -45,7 +45,10 @@ Production flow:
 5. Supabase stores state in `syncdev_rooms`, `syncdev_room_clients`,
    `syncdev_room_events`, and `syncdev_room_tests`, created by the migrations in
    `supabase/migrations/` and reflected in `supabase/schema.sql`.
-6. `api/execute.js` is the optional server-side proxy for isolated multi-language execution.
+6. `api/execute.js` runs Java, Python, C, and C++ in short-lived Vercel
+   Sandbox microVMs restored from a prebuilt runtime snapshot. JavaScript runs
+   locally in a browser Web Worker. A custom provider remains optional for
+   additional languages.
 
 Local development uses the Express/Socket.IO server in `server.js`. Keep this path unless local collaborative development is intentionally redesigned.
 
@@ -81,12 +84,17 @@ Current Vercel configuration:
 | `SUPABASE_URL=https://rprlvvqvssroladvokem.supabase.co` | Production, Preview, Development | No | Server-side Supabase REST base URL. |
 | `SUPABASE_SERVICE_ROLE_KEY` | Production, Preview | Yes | Modern Supabase server secret (`sb_secret_...`); value lives in Vercel and Supabase. |
 | `CRON_SECRET` | Production | Yes | Authenticates Vercel's daily `/api/keepalive` request; value lives in Vercel and Aryan's password manager. |
-| `CODE_EXECUTION_PROVIDER_URL` | Not currently configured | Usually no | Optional isolated compiler service endpoint. |
-| `CODE_EXECUTION_PROVIDER_TOKEN` | Not currently configured | Yes | Optional compiler service bearer token. |
+| `CODE_EXECUTION_SANDBOX_SNAPSHOT` | Production, Preview, Development | No | Reusable Vercel Sandbox image with Java 21, Python 3, GCC, and G++. |
+| `CODE_EXECUTION_PROVIDER_URL` | Not currently configured | Usually no | Optional override/extension for other isolated compiler runtimes. |
+| `CODE_EXECUTION_PROVIDER_TOKEN` | Not currently configured | Yes | Optional compiler-service bearer token. |
 
 The modern Supabase server secret is the active production credential. Legacy project API keys are disabled. Never replace the active secret with a browser-safe key, and never add it to a `REACT_APP_` variable.
 
-Remote Python, Java, C/C++, C#, Go, Rust, PHP, Ruby, and Kotlin execution returns a controlled `503` until both execution-provider variables are configured. JavaScript runs locally in a Web Worker; JSON and YAML validation also run in the browser.
+Java, Python, C, and C++ execute in isolated Vercel Sandboxes with networking
+disabled and a hard execution timeout. JavaScript runs locally in a Web Worker;
+JSON and YAML validation also run in the browser. C#, Go, Rust, PHP, Ruby, and
+Kotlin require the optional configured provider until corresponding sandbox
+runtimes are added.
 
 For local Socket.IO development, start from `.env.example`. The defaults are:
 
@@ -220,6 +228,13 @@ returns the role-filtered room state.
 
 `POST /api/execute` accepts a provider-neutral execution request with `language`, `source`, `stdin`, `timeout`, and optional `runtime`. It must never execute untrusted code directly inside the application function; use an isolated external compiler provider.
 
+The default server implementation restores the runtime named by
+`CODE_EXECUTION_SANDBOX_SNAPSHOT`, writes source and standard input into a
+fresh microVM, disables outbound networking, compiles when required, captures
+bounded output, and destroys the sandbox in `finally`. Recreate the snapshot
+with `npm run sandbox:snapshot` after changing compiler versions, then update
+the environment variable in all three Vercel environments.
+
 ## Change-safety rules
 
 - Preserve unrelated local or untracked files. In particular, `deep-research-report.md` may exist locally and is not part of application changes unless explicitly requested.
@@ -234,7 +249,10 @@ returns the role-filtered room state.
 
 ## Current known caveats
 
-- Remote multi-language execution is intentionally unavailable until an isolated provider is selected and configured.
+- Java, Python, C, and C++ execution depends on the configured Vercel Sandbox
+  snapshot. JavaScript runs in the browser. The remaining listed compiled and
+  interpreted languages require either additional snapshot runtimes or the
+  optional isolated provider.
 - Function and database regions should be kept geographically close when the hosting plan permits it; re-check latency before changing regions.
 - React Router emits version-7 future-flag warnings during tests. They are warnings, not test failures, and should be handled as a deliberate router upgrade rather than suppressed blindly.
 - `npm audit --omit=dev` reports two moderate advisories against every React

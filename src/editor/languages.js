@@ -52,6 +52,12 @@ const countMatches = (source, expressions) =>
         return score + (matches ? matches.length : 0);
     }, 0);
 
+const scoreMatches = (source, signatures) =>
+    signatures.reduce((score, [expression, weight]) => {
+        const matches = source.match(expression);
+        return score + (matches ? matches.length * weight : 0);
+    }, 0);
+
 const looksLikeJson = (source) => {
     if (!/^(?:\[|{)/.test(source)) {
         return false;
@@ -87,47 +93,67 @@ export const detectLanguage = (code = '') => {
     }
 
     const scores = {
-        typescript: countMatches(source, [
-            /\b(interface|type|enum|namespace)\s+[A-Z]\w*/g,
-            /:\s*(string|number|boolean|unknown|never|void|any)(?:\[\])?/g,
-            /\b(?:public|private|protected|readonly)\s+\w+/g,
-            /\bas\s+(?:const|\w+)/g,
+        javascript: scoreMatches(source, [
+            [/\b(?:const|let|var)\s+[A-Za-z_$][\w$]*/g, 2],
+            [/\b(?:async\s+)?function\s+[A-Za-z_$][\w$]*\s*\(/g, 4],
+            [/(?:\([^)]*\)|[A-Za-z_$][\w$]*)\s*=>/g, 4],
+            [/\bconsole\.(?:log|error|warn|info)\s*\(/g, 4],
+            [/\b(?:require\s*\(|module\.exports|exports\.)/g, 4],
+            [/\b(?:document|window)\.[A-Za-z_$][\w$]*/g, 3],
         ]),
-        python: countMatches(source, [
-            /^\s*(?:async\s+)?def\s+\w+\s*\(/gm,
-            /^\s*from\s+[\w.]+\s+import\s+/gm,
-            /^\s*import\s+[\w.]+/gm,
-            /\b(self|elif|None|True|False)\b/g,
-            /:\s*(?:#.*)?$/gm,
+        typescript: scoreMatches(source, [
+            [/\b(?:interface|type|enum|namespace)\s+[A-Z]\w*/g, 5],
+            [/:\s*(?:string|number|boolean|unknown|never|void|any)(?:\[\])?/g, 4],
+            [/\b(?:public|private|protected|readonly)\s+\w+\s*[?:=]/g, 3],
+            [/\bas\s+(?:const|\w+)/g, 3],
+            [/\b(?:implements|keyof|typeof)\s+\w+/g, 3],
         ]),
-        java: countMatches(source, [
-            /\bpublic\s+static\s+void\s+main\s*\(/g,
-            /\bSystem\.(?:out|err)\./g,
-            /\b(?:public|private|protected)\s+class\s+\w+/g,
-            /\b(?:String|Integer|Boolean)\s+\w+/g,
+        python: scoreMatches(source, [
+            [/^\s*(?:async\s+)?def\s+\w+\s*\(/gm, 5],
+            [/^\s*from\s+[\w.]+\s+import\s+/gm, 4],
+            [/^\s*import\s+[\w.]+/gm, 2],
+            [/\b(?:self|elif|None|True|False)\b/g, 3],
+            [/^\s*(?:class|if|for|while|try|with)\b.*:\s*(?:#.*)?$/gm, 3],
+            [/\bprint\s*\(/g, 2],
         ]),
-        cpp: countMatches(source, [
-            /#include\s*[<"](?:iostream|vector|string|map|algorithm)/g,
-            /\bstd::/g,
-            /\b(?:cout|cin)\s*(?:<<|>>)/g,
-            /\busing\s+namespace\s+std\b/g,
+        java: scoreMatches(source, [
+            [/\bpublic\s+static\s+void\s+main\s*\(\s*String(?:\[\]|\s*\.\.\.)/g, 8],
+            [/\bSystem\.(?:out|err)\.(?:print|println|printf)\s*\(/g, 6],
+            [/^\s*(?:package|import)\s+java(?:x)?\.[\w.*]+\s*;/gm, 6],
+            [/\bpublic\s+(?:(?:abstract|final|sealed|strictfp)\s+)*class\s+\w+/g, 5],
+            [/\b(?:class|record|interface|enum)\s+[A-Z]\w*/g, 1],
+            [/\b(?:String|Integer|Boolean|Long|Double|List|Map|Set)\s*(?:<[^;=()]+>)?(?:\[\])?\s+\w+/g, 3],
+            [/\b(?:public|private|protected)\s+(?:static\s+)?(?:final\s+)?(?:void|boolean|byte|short|int|long|float|double|char|String|[A-Z]\w*)\s+\w+\s*\(/g, 4],
+            [/\bnew\s+[A-Z]\w*(?:<[^>]+>)?\s*\(/g, 2],
+            [/@(?:Override|Deprecated|SuppressWarnings)\b/g, 3],
         ]),
-        c: countMatches(source, [
-            /#include\s*[<"](?:stdio|stdlib|string)\.h/g,
-            /\b(?:printf|scanf|malloc|free)\s*\(/g,
-            /\b(?:struct|typedef)\s+\w+/g,
-            /\bint\s+main\s*\(/g,
+        cpp: scoreMatches(source, [
+            [/#include\s*[<"](?:iostream|vector|string|map|algorithm|memory|utility)>?/g, 7],
+            [/\bstd::/g, 5],
+            [/\b(?:cout|cin|cerr)\s*(?:<<|>>)/g, 5],
+            [/\busing\s+namespace\s+std\b/g, 5],
+            [/\btemplate\s*<[^>]+>/g, 4],
+            [/\b(?:vector|string|map|unordered_map|unique_ptr|shared_ptr)\s*</g, 3],
         ]),
-        csharp: countMatches(source, [
-            /\busing\s+System\b/g,
-            /\bConsole\.(?:WriteLine|ReadLine)/g,
-            /\bnamespace\s+[\w.]+/g,
+        c: scoreMatches(source, [
+            [/#include\s*[<"](?:stdio|stdlib|string|stdint|stdbool)\.h>?/g, 7],
+            [/\b(?:printf|scanf|malloc|calloc|realloc|free)\s*\(/g, 4],
+            [/\b(?:struct|typedef)\s+\w+/g, 3],
+            [/\bint\s+main\s*\(\s*(?:void|int\s+\w+\s*,)?/g, 3],
+            [/\b(?:size_t|uint\d+_t|int\d+_t)\b/g, 3],
         ]),
-        kotlin: countMatches(source, [
-            /\bfun\s+main\s*\(/g,
-            /\b(?:val|var)\s+\w+/g,
-            /\bdata\s+class\s+\w+/g,
-            /\bprintln\s*\(/g,
+        csharp: scoreMatches(source, [
+            [/\busing\s+System(?:\.[\w.]+)?\s*;/g, 7],
+            [/\bConsole\.(?:WriteLine|ReadLine|Write|Read)\s*\(/g, 6],
+            [/\bnamespace\s+[\w.]+/g, 4],
+            [/\b(?:string|bool|decimal)\s+\w+/g, 2],
+        ]),
+        kotlin: scoreMatches(source, [
+            [/\bfun\s+main\s*\(/g, 7],
+            [/\b(?:val|var)\s+\w+/g, 2],
+            [/\bdata\s+class\s+\w+/g, 5],
+            [/\bprintln\s*\(/g, 3],
+            [/\b(?:object|companion\s+object)\s+\w+/g, 4],
         ]),
         go: countMatches(source, [
             /^\s*package\s+\w+/gm,
