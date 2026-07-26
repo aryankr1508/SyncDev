@@ -291,7 +291,7 @@ const EditorStatusBar = ({
                                 <CodeIcon className="h-4 w-4 text-sync" />
                                 Show output panel
                             </button>
-                            <p className="px-3 pb-1 pt-2 text-[10px] leading-4 text-slate-400">JavaScript runs locally. Other runtimes use a configured isolated provider and stop after 4 seconds.</p>
+                            <p className="px-3 pb-1 pt-2 text-[10px] leading-4 text-slate-400">JavaScript runs locally. Java, Python, C, and C++ run in isolated sandboxes with a four-second code limit.</p>
                         </div>
                     </details>
                 </div>
