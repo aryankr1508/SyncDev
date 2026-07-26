@@ -3,6 +3,8 @@ import ACTIONS from '../Actions';
 const POLL_INTERVAL = 1000;
 const HEARTBEAT_INTERVAL = 12000;
 const CODE_DEBOUNCE = 180;
+const AUTH_SETTLE_WINDOW = 6000;
+const AUTH_RETRY_DELAYS = [300, 700, 1200];
 
 const createClientId = () =>
     window.crypto?.randomUUID?.() ||
@@ -22,6 +24,7 @@ class PollingRoomTransport {
         this.lastRevision = '';
         this.lastStateVersion = '';
         this.failures = 0;
+        this.sessionReadyAt = 0;
     }
 
     on(event, callback) {
@@ -90,7 +93,7 @@ class PollingRoomTransport {
         };
     }
 
-    async request(body) {
+    async request(body, authRetry = 0) {
         const response = await fetch(this.endpoint, {
             method: 'POST',
             headers: { 'content-type': 'application/json' },
@@ -99,6 +102,20 @@ class PollingRoomTransport {
 
         if (!response.ok) {
             const result = await response.json().catch(() => ({}));
+            const canRetryAuth =
+                response.status === 401 &&
+                this.sessionReadyAt > 0 &&
+                Date.now() - this.sessionReadyAt < AUTH_SETTLE_WINDOW &&
+                authRetry < AUTH_RETRY_DELAYS.length;
+            if (canRetryAuth) {
+                await new Promise((resolve) =>
+                    window.setTimeout(
+                        resolve,
+                        AUTH_RETRY_DELAYS[authRetry]
+                    )
+                );
+                return this.request(body, authRetry + 1);
+            }
             const error = new Error(
                 result.message || `Sync request failed (${response.status})`
             );
@@ -130,6 +147,7 @@ class PollingRoomTransport {
                 mode,
             });
             this.applyState(state, username);
+            this.sessionReadyAt = Date.now();
             this.failures = 0;
         } catch (error) {
             this.connected = false;
