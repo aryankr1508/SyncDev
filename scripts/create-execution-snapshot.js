@@ -1,6 +1,4 @@
 /* eslint-disable no-console */
-const { Sandbox } = require('@vercel/sandbox');
-
 const REQUIRED_COMMANDS = ['java', 'javac', 'python3', 'gcc', 'g++'];
 const PACKAGES = [
     'java-21-amazon-corretto-devel',
@@ -10,6 +8,7 @@ const PACKAGES = [
 ];
 
 const run = async () => {
+    const { Sandbox } = await import('@vercel/sandbox');
     const sandbox = await Sandbox.create({
         runtime: 'node24',
         timeout: 10 * 60 * 1000,

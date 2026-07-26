@@ -93,8 +93,10 @@ const runInVercelSandbox = async (
         throw error;
     }
 
+    // Use the SDK's native ESM export. Its CommonJS compatibility build pulls
+    // in an ESM-only serializer and fails in the Vercel function runtime.
     const Sandbox =
-        SandboxClass || require('@vercel/sandbox').Sandbox;
+        SandboxClass || (await import('@vercel/sandbox')).Sandbox;
     const startedAt = Date.now();
     const spec = executionSpec(language, source);
     const sandbox = await Sandbox.create({
