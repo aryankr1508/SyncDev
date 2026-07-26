@@ -14,6 +14,10 @@ editor with structured session evidence for interviews, training, and debugging.
 - A replay slider, event navigation, source snapshots, and host-only restore
 - Visible and hidden evaluation cases with redacted participant views
 - Interview, training, and debugging room modes
+- Mode-specific UX and terminology:
+  - interview rooms guide hosts through Brief → Observe → Evaluate → Review
+  - training rooms guide learners through Explain → Practise → Feedback → Recap
+  - debugging rooms guide teams through Reproduce → Hypothesise → Fix → Verify
 - Downloadable Markdown reports containing participants, checkpoints, runs,
   decisions, and revision provenance without hidden test data
 - Seven-day room retention with bounded event history

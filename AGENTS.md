@@ -31,6 +31,11 @@ Do not create replacement Vercel or Supabase projects when these resources alrea
 
 SyncDev is a real-time collaborative code editor built with React 17, Create React App, Tailwind CSS, CodeMirror 5, Vercel Functions, Supabase, Express, and Socket.IO.
 
+Room-mode UX copy and workflows are centralized in `src/session/modes.js`.
+Keep the creation preview, workspace header, evidence drawer, evaluation labels,
+and report outcome driven by that configuration rather than duplicating
+mode-specific conditionals across components.
+
 Production flow:
 
 1. The React client is built into `build/` and served by Vercel.

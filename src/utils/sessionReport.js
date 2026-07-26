@@ -1,3 +1,5 @@
+import { getModeExperience } from '../session/modes';
+
 const clean = (value, fallback = '') =>
     String(value ?? fallback).replace(/\r\n/g, '\n').trim();
 
@@ -52,6 +54,7 @@ export const createSessionReport = ({
     const runs = events.filter(
         (event) => event.type === 'run' || event.type === 'test-run'
     );
+    const experience = getModeExperience(session?.mode);
     const participants = new Map();
 
     clients.forEach((client) => {
@@ -71,6 +74,7 @@ export const createSessionReport = ({
         '',
         `- Room: \`${clean(roomId, 'unknown')}\``,
         `- Mode: ${clean(session?.mode, 'interview')}`,
+        `- Purpose: ${experience.workspaceGoal}`,
         `- Generated: ${new Date().toLocaleString()}`,
         `- Current revision: \`${clean(session?.revision, 'none')}\``,
         `- Checkpoints: ${checkpoints.length}`,
@@ -100,7 +104,7 @@ export const createSessionReport = ({
         });
     }
 
-    lines.push('', '## Outcome', '');
+    lines.push('', `## ${experience.outcomeHeading}`, '');
     const latestCheckpoint = checkpoints[checkpoints.length - 1];
     if (latestCheckpoint) {
         lines.push(
