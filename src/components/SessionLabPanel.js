@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { getModeExperience } from '../session/modes';
 import { createSessionReport } from '../utils/sessionReport';
 import { PlayIcon, PlusIcon } from './ui/Icons';
 
@@ -64,6 +65,7 @@ const formatEventDetails = (event) => {
 const TimelineTab = ({
     events,
     currentRole,
+    experience,
     onCheckpoint,
     onRestore,
 }) => {
@@ -99,21 +101,21 @@ const TimelineTab = ({
                             <PlusIcon className="h-3.5 w-3.5" />
                         </span>
                         <strong className="text-xs text-slate-800 dark:text-white">
-                            Mark a checkpoint
+                            {experience.checkpointAction}
                         </strong>
                     </div>
                     <input
                         value={title}
                         onChange={(event) => setTitle(event.target.value)}
                         maxLength={80}
-                        placeholder="What was achieved?"
+                        placeholder={experience.checkpointTitlePlaceholder}
                         className={inputClass}
                     />
                     <textarea
                         value={note}
                         onChange={(event) => setNote(event.target.value)}
                         maxLength={500}
-                        placeholder="Intent, hypothesis, or decision (optional)"
+                        placeholder={experience.checkpointNotePlaceholder}
                         className={`${inputClass} mt-2 min-h-[68px] resize-none`}
                     />
                     <button
@@ -121,7 +123,7 @@ const TimelineTab = ({
                         disabled={!title.trim()}
                         className="mt-2 w-full rounded-lg bg-sync px-3 py-2 text-xs font-extrabold text-[#062015] transition hover:brightness-105 disabled:opacity-45"
                     >
-                        Save evidence checkpoint
+                        Save evidence
                     </button>
                 </form>
             )}
@@ -130,7 +132,7 @@ const TimelineTab = ({
                 <div className="mb-2 flex items-center justify-between">
                     <div>
                         <h3 className="text-xs font-bold text-slate-800 dark:text-white">
-                            Replay timeline
+                            {experience.timelineTab} timeline
                         </h3>
                         <p className="mt-0.5 text-[10px] text-slate-500 dark:text-[#818aa2]">
                             {events.length} immutable session events
@@ -246,8 +248,7 @@ const TimelineTab = ({
                     </>
                 ) : (
                     <div className="rounded-xl border border-dashed border-slate-200 px-4 py-8 text-center text-xs text-slate-400 dark:border-[#2a354e]">
-                        Start coding or create a checkpoint to begin the
-                        evidence timeline.
+                        {experience.emptyTimeline}
                     </div>
                 )}
             </section>
@@ -294,6 +295,7 @@ const TestsTab = ({
     hiddenTestCount,
     currentRole,
     isRunning,
+    experience,
     onAddTest,
     onDeleteTest,
     onRunTests,
@@ -324,10 +326,10 @@ const TestsTab = ({
                 <div className="flex items-center justify-between gap-3">
                     <div>
                         <h3 className="text-xs font-bold text-slate-800 dark:text-white">
-                            Evaluation suite
+                            {experience.testsTitle}
                         </h3>
                         <p className="mt-1 text-[10px] leading-4 text-slate-500 dark:text-[#818aa2]">
-                            Every result is tied to the exact source revision.
+                            {experience.testsDescription}
                         </p>
                     </div>
                     <button
@@ -407,13 +409,13 @@ const TestsTab = ({
                     className="rounded-xl border border-slate-200 p-3 dark:border-[#29344e]"
                 >
                     <h3 className="mb-3 text-xs font-bold text-slate-800 dark:text-white">
-                        Add evaluation case
+                        {experience.addTestTitle}
                     </h3>
                     <input
                         className={inputClass}
                         value={draft.label}
                         maxLength={80}
-                        placeholder="Test label"
+                        placeholder={experience.testLabelPlaceholder}
                         onChange={(event) =>
                             setDraft((current) => ({
                                 ...current,
@@ -457,7 +459,7 @@ const TestsTab = ({
                             }
                             className="accent-emerald-500"
                         />
-                        Hide inputs and expected output from participants
+                        {experience.hiddenTestLabel}
                     </label>
                     <button
                         type="submit"
@@ -477,6 +479,7 @@ const ControlsTab = ({
     session,
     clients,
     currentRole,
+    experience,
     onSettings,
     onExport,
 }) => {
@@ -538,11 +541,10 @@ const ControlsTab = ({
                 <div className="flex items-center justify-between gap-3">
                     <div>
                         <h3 className="text-xs font-bold text-slate-800 dark:text-white">
-                            Evidence-backed report
+                            {experience.reportTitle}
                         </h3>
                         <p className="mt-1 text-[10px] text-slate-500 dark:text-[#818aa2]">
-                            Export decisions, runs, checkpoints, and
-                            participation without hidden test data.
+                            {experience.reportDescription}
                         </p>
                     </div>
                     <button
@@ -578,6 +580,7 @@ const SessionLabPanel = ({
     onExport,
 }) => {
     const [tab, setTab] = useState('timeline');
+    const experience = getModeExperience(session.mode);
     if (!open) return null;
 
     return (
@@ -586,7 +589,7 @@ const SessionLabPanel = ({
                 <div className="flex items-start justify-between gap-3">
                     <div>
                         <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-sync">
-                            Collaborative lab notebook
+                            {experience.purpose}
                         </p>
                         <h2 className="mt-1 text-lg font-extrabold text-slate-900 dark:text-white">
                             Session evidence
@@ -613,27 +616,46 @@ const SessionLabPanel = ({
                     </button>
                 </div>
 
+                <div className="mt-4 rounded-xl border border-sync/20 bg-sync/[0.045] p-3">
+                    <p className="text-[10px] leading-4 text-slate-600 dark:text-[#a2aabd]">
+                        {experience.description}
+                    </p>
+                    <ol className="mt-3 grid grid-cols-4 gap-1">
+                        {experience.workflow.map((step, index) => (
+                            <li
+                                key={step}
+                                className="rounded-lg bg-white/80 px-1 py-2 text-center text-[8px] font-bold uppercase tracking-wide text-slate-500 dark:bg-white/[0.04] dark:text-[#9da6ba]"
+                            >
+                                <span className="mb-1 block text-sync">
+                                    0{index + 1}
+                                </span>
+                                {step}
+                            </li>
+                        ))}
+                    </ol>
+                </div>
+
                 <nav className="mt-4 grid grid-cols-3 gap-1 rounded-xl bg-slate-100 p-1 dark:bg-white/[0.035]">
                     <button
                         type="button"
                         className={tabClass(tab === 'timeline')}
                         onClick={() => setTab('timeline')}
                     >
-                        Timeline
+                        {experience.timelineTab}
                     </button>
                     <button
                         type="button"
                         className={tabClass(tab === 'tests')}
                         onClick={() => setTab('tests')}
                     >
-                        Tests
+                        {experience.testsTab}
                     </button>
                     <button
                         type="button"
                         className={tabClass(tab === 'controls')}
                         onClick={() => setTab('controls')}
                     >
-                        Report
+                        {experience.reportTab}
                     </button>
                 </nav>
             </header>
@@ -643,6 +665,7 @@ const SessionLabPanel = ({
                     <TimelineTab
                         events={session.events || []}
                         currentRole={currentRole}
+                        experience={experience}
                         onCheckpoint={onCheckpoint}
                         onRestore={onRestore}
                     />
@@ -653,6 +676,7 @@ const SessionLabPanel = ({
                         hiddenTestCount={session.hiddenTestCount || 0}
                         currentRole={currentRole}
                         isRunning={isRunning}
+                        experience={experience}
                         onAddTest={onAddTest}
                         onDeleteTest={onDeleteTest}
                         onRunTests={onRunTests}
@@ -664,6 +688,7 @@ const SessionLabPanel = ({
                         session={session}
                         clients={clients}
                         currentRole={currentRole}
+                        experience={experience}
                         onSettings={onSettings}
                         onExport={onExport}
                     />

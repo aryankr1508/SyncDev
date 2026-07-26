@@ -8,6 +8,42 @@ const chromePath =
     process.env.CHROME_PATH ||
     '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const appUrl = process.env.SYNCDEV_UI_URL || 'http://localhost:3100';
+const mode = process.env.SYNCDEV_SMOKE_MODE || 'interview';
+const modeUi = {
+    interview: {
+        selector: 'Interview',
+        workspace: 'Interview workspace',
+        purpose: 'evaluate problem-solving',
+        timeline: 'Attempts',
+        tests: 'Evaluation',
+        titlePlaceholder: 'Approach, breakthrough, or final solution',
+        notePlaceholder: 'What did the candidate reason about or decide?',
+        testPlaceholder: 'Requirement or edge case',
+    },
+    training: {
+        selector: 'Training',
+        workspace: 'Learning workspace',
+        purpose: 'teach through practice',
+        timeline: 'Progress',
+        tests: 'Exercises',
+        titlePlaceholder: 'Concept or exercise completed',
+        notePlaceholder:
+            'What did the learner understand or still need help with?',
+        testPlaceholder: 'Exercise objective',
+    },
+    debugging: {
+        selector: 'Debugging',
+        workspace: 'Debugging workspace',
+        purpose: 'resolve issues systematically',
+        timeline: 'Investigation',
+        tests: 'Verification',
+        titlePlaceholder: 'Symptom, hypothesis, root cause, or fix',
+        notePlaceholder:
+            'What evidence supports this finding or decision?',
+        testPlaceholder: 'Failure scenario or regression',
+    },
+}[mode];
+if (!modeUi) throw new Error(`Unsupported smoke-test mode: ${mode}`);
 const debugPort = Number(process.env.CHROME_DEBUG_PORT) || 9333;
 const screenshotPath =
     process.env.SYNCDEV_SCREENSHOT ||
@@ -212,24 +248,32 @@ const run = async () => {
             `document.body.innerText.includes('Create a new room')`
         );
         await clickText('Create a new room');
+        if (mode !== 'interview') await clickText(modeUi.selector);
         await setValue('How should we call you?', 'UI Smoke Host');
         await clickText('Start private room');
         await waitFor(`location.pathname.startsWith('/editor/')`);
         await waitFor(
-            `document.body.innerText.includes('Session evidence') &&
+            `document.body.innerText.includes(${JSON.stringify(
+                modeUi.workspace
+            )}) &&
              document.body.innerText.includes('host')`
         );
 
-        await clickText('Session evidence');
+        await clickText(modeUi.timeline);
         await waitFor(
-            `document.body.innerText.toLowerCase().includes('collaborative lab notebook')`
+            `document.body.innerText.toLowerCase().includes(${JSON.stringify(
+                modeUi.purpose
+            )})`
         );
-        await setValue('What was achieved?', 'UI smoke checkpoint');
         await setValue(
-            'Intent, hypothesis, or decision (optional)',
+            modeUi.titlePlaceholder,
+            'UI smoke checkpoint'
+        );
+        await setValue(
+            modeUi.notePlaceholder,
             'Verify replay evidence through the rendered interface.'
         );
-        await clickText('Save evidence checkpoint');
+        await clickText('Save evidence');
         try {
             await waitFor(
                 `document.body.innerText.includes('UI smoke checkpoint')`
@@ -242,8 +286,8 @@ const run = async () => {
             throw error;
         }
 
-        await clickText('Tests');
-        await setValue('Test label', 'Increment visible case');
+        await clickText(modeUi.tests);
+        await setValue(modeUi.testPlaceholder, 'Increment visible case');
         await setValue('Standard input', '41');
         await setValue('Expected output', '42');
         await clickText('Add test');
@@ -262,7 +306,7 @@ const run = async () => {
             `document.body.innerText.includes('1/1 tests passed')`,
             15000
         );
-        await clickText('Timeline');
+        await clickText(modeUi.timeline, 'aside button');
         await waitFor(`document.body.innerText.includes('1/1 passed')`);
 
         const capture = await cdp.send('Page.captureScreenshot', {
@@ -277,6 +321,7 @@ const run = async () => {
                 screenshotPath,
                 verified: [
                     'private room creation',
+                    `${mode} guided workflow`,
                     'host role',
                     'lab notebook drawer',
                     'checkpoint creation',

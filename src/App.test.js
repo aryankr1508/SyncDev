@@ -27,6 +27,29 @@ test('creates a room and moves focus to the display name', () => {
     expect(screen.getByPlaceholderText(/how should we call you/i)).toHaveFocus();
 });
 
+test('explains and previews each room workflow before creation', () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: /create a new room/i }));
+
+    expect(
+        screen.getByRole('radio', {
+            name: /interview evaluate problem-solving/i,
+        })
+    ).toHaveAttribute('aria-checked', 'true');
+    expect(screen.getByText('Observe')).toBeInTheDocument();
+
+    fireEvent.click(
+        screen.getByRole('radio', {
+            name: /debugging resolve issues systematically/i,
+        })
+    );
+
+    expect(screen.getByText('Reproduce')).toBeInTheDocument();
+    expect(
+        screen.getByText(/preserve reproduction steps, hypotheses/i)
+    ).toBeInTheDocument();
+});
+
 test('switches and persists the application theme', () => {
     render(<App />);
     const startedInDarkMode = document.documentElement.classList.contains('dark');

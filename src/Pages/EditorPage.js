@@ -207,6 +207,7 @@ const EditorPage = () => {
                         }
                         eventCount={session.events.length}
                         currentRole={currentRole}
+                        mode={session.mode}
                     />
 
                     <div

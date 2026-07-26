@@ -36,6 +36,8 @@ test('creates an evidence report without exposing hidden test data', () => {
     });
 
     expect(report).toContain('SyncDev session report');
+    expect(report).toContain('Assess reasoning, correctness, and communication.');
+    expect(report).toContain('## Interview outcome');
     expect(report).toContain('Working solution');
     expect(report).toContain('3 tests — 3 passed');
     expect(report).not.toContain('must-not-appear');
